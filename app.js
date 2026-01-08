@@ -4,14 +4,44 @@ import dotenv from 'dotenv';
 import errorHandler from './middleware/errorMiddleware.js';
 dotenv.config()
 import cookieParser from 'cookie-parser';
+import { stripeWebhook } from './controllers/appointment/appointment.js';
+import { labStripeWebhook } from './controllers/laboratory/laboratory.js';
+import cors from 'cors'
 // import  cron from 'node-cron'
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
 
 
 
-app.use(express.json())
+const allowedOrigins = [
+  process.env.HEALTHBIRDGE_DOMAIN,
+  process.env.ADMIN_HEALTHBRIDGE_DOMAIN
+];
 
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (Postman, mobile apps)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true // if using cookies / sessions
+  })
+);
+
+
+//stripe webhook endipoint 
+
+app.post("/api/v1/appointment/verify" , express.raw({ type: "application/json" }),  stripeWebhook)
+app.post("/api/v1/lab/verify" , express.raw({ type: "application/json" }),  labStripeWebhook)
+
+app.use(express.json())
+app.use(express.urlencoded({extended:true}))
 
 
 app.use(cookieParser(process.env.SIGNED_COOKIE_SECRET_KEY ))
@@ -27,6 +57,12 @@ connectDB()
 // **************************** slot function end here  ************* // 
 
 
+// testing api 
+
+app.get("/" , (req ,res) =>{
+    res.end("tesing api")
+})
+
 // **************************** doctor api's start ************* // 
 import doctorRoute from './routes/doctor/doctor.js';
 app.use("/api/v1/doctor" , doctorRoute)
@@ -38,7 +74,42 @@ import patientRoute from './routes/patient/patient.js';
 app.use("/api/v1/patient" , patientRoute)
 // **************************** Patient routes end ************* // 
 
+// **************************** slots routes start ************* // 
+import slot from './routes/slots/slot.js';
 
+app.use("/api/v1/slot" , slot)
+// **************************** slots routes end ************* // 
+// **************************** appointments routes start ************* // 
+import appointment from './routes/appointment/appointment.js'
+
+app.use("/api/v1/appointment" , appointment)
+// **************************** appointments routes end ************* // 
+
+
+
+// **************************** review routes start ************* // 
+import review from './routes/review/review.js'
+
+app.use("/api/v1/review" , review)
+// **************************** review routes end ************* // 
+
+// **************************** laboratory routes start ************* // 
+
+import Laboratory from './routes/laboratory/laboratory.js';
+app.use("/api/v1/laboratory" , Laboratory)
+
+// **************************** laboratory routes end ************* //
+
+// **************************** admin routes start ************* // 
+import admin from './routes/admin/admin.js'
+import { zodErrorHandler } from './middleware/zodErrorMiddleware.js';
+
+
+app.use("/api/v1/admin" , admin)
+// **************************** admin routes end ************* // 
+
+
+app.use(zodErrorHandler);
 app.use(errorHandler)
 
 app.listen(process.env.PORT , () =>{

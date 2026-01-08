@@ -3,36 +3,75 @@ import Doctor from "../../models/doctor/doctor.js";
 import ErrorHandler from "../../utils/errorHandler.js"; // your custom error class
 import bcrypt from "bcryptjs";
 import Session from "../../models/session.js";
-import Appointment from "../../models/appointements/appointements.js";
+import {Appointment} from "../../models/appointements/appointements.js";
 import { DoctorGig } from "../../models/doctor/doctorgig.js";
-import { Slot } from "../../models/doctor/slots.js";
+
 import { BankDetails } from "../../models/doctor/bankdetails.js";
-import { availabilitySchema, createGigSchema, doctorLogin, doctorRegistrationSchema, updateGigSchema } from "../../utils/zod.js";
+import { availabilitySchema, createGigSchema, doctorLogin, doctorRegistrationSchema, updateGigSchema } from "../../utils/doctorValidator.js";
 import { DoctorAvailability } from "../../models/doctor/availavbility.js";
 import { generateSlots } from "../../utils/slotGenerator.js";
-
+import { Notification } from "../../models/notifaction/notifaction.js";
+import { Slot } from "../../models/slots/slots.js";
+import { canJoinCall } from "../../utils/canjoincall.js";
+import { ZodError } from "zod";
 
 // 🩺 Doctor Signup
 export const registerDoctor = asyncHandler(async (req, res, next) => {
-  const validatedData = doctorRegistrationSchema.parse({
-    ...req.body,
-    pmcCertificate: req.file,
-  });
-  console.log(validatedData);
+  // console.log(req.body);
+  // console.log(req.file);
   
+  const result = doctorRegistrationSchema.safeParse({
+  firstName: req.body.firstName || "",
+  lastName: req.body.lastName || "",
+  medicalUniversity: req.body.medicalUniversity || "",
+  specialization: req.body.specialization || "",
+  phoneNumber: req.body.phoneNumber || "",
+  email: req.body.email || "",
+  password: req.body.password || "",
+  city: req.body.city || "",
+  pmcNumber: req.body.pmcNumber || "",
+  cnicNumber: req.body.cnicNumber || "",
+  gender: req.body.gender || "",
+  pmcCertificate: req.file || null,
+});
 
+
+if (!result.success) {
+  const errors = {};
+
+  if (result.error instanceof ZodError) {
+    result.error.issues.forEach(issue => {
+      const field = issue.path?.[0] ?? "general";
+
+      if (!errors[field]) {
+        errors[field] = issue.message;
+      }
+    });
+  }
+
+  return res.status(400).json({
+    success: false,
+    message: "Validation failed",
+    errors,
+  });
+}
+
+
+  const validatedData = result.data;
+
+  // 2️⃣ Check if doctor already exists
   const existingDoctor = await Doctor.findOne({ email: validatedData.email });
   if (existingDoctor) {
     return next(new ErrorHandler("Email already registered", 400));
   }
 
-   await Doctor.create({
+  // 3️⃣ Create new doctor
+  const newDoctor = await Doctor.create({
     ...validatedData,
-    pmcCertificate:req.file.filename
+    pmcCertificate: req.file.filename, // save the uploaded file name
   });
 
-
-
+  // 4️⃣ Respond success
   res.status(201).json({
     success: true,
     message: "Doctor registered successfully",
@@ -42,7 +81,35 @@ export const registerDoctor = asyncHandler(async (req, res, next) => {
 
 
 export const loginDoctor = asyncHandler(async (req, res, next) => {
-  const validateData =  doctorLogin.parse(req.body);
+  const result = doctorLogin.safeParse({
+  
+  email: req.body.email || "",
+  password: req.body.password || "",
+ 
+});
+
+
+if (!result.success) {
+  const errors = {};
+
+  if (result.error instanceof ZodError) {
+    result.error.issues.forEach(issue => {
+      const field = issue.path?.[0] ?? "general";
+
+      if (!errors[field]) {
+        errors[field] = issue.message;
+      }
+    });
+  }
+
+  return res.status(400).json({
+    success: false,
+    message: "Validation failed",
+    errors,
+  });
+}
+  const validateData = result.data;
+
 
   // 1️⃣ Find doctor
   const doctor = await Doctor.findOne({ email: validateData.email }).select("+password");
@@ -52,8 +119,17 @@ export const loginDoctor = asyncHandler(async (req, res, next) => {
   const isMatch = await bcrypt.compare(validateData.password, doctor.password);
   if (!isMatch) return next(new ErrorHandler("Invalid email or password", 401));
 
+    if (doctor.isBanned) {
+      return next(new ErrorHandler("Your account is banned. Please contact admin", 403));
+      
+    }
+    if (!doctor.isVerified) {
+      return next(new ErrorHandler("Your account is under review. Admin will verify you soon.", 403));
+   
+    }
+
   // 3️⃣ Check for existing session
-  let session = await Session.findOne({ doctorId: doctor._id });
+  let session = await Session.findOne({ userId: doctor._id });
 
   // TTL deletes expired sessions automatically
   // If session exists → reuse it
@@ -62,17 +138,19 @@ export const loginDoctor = asyncHandler(async (req, res, next) => {
     const expiresAt = new Date(Date.now() + ttlMs);
 
     session = await Session.create({
-      doctorId: doctor._id,
-      createdAt: new Date(),
+      userId: doctor._id,
+      role:"doctor",
+     
       expiresAt,
     });
   }
 
   // 4️⃣ Set cookie (even if same session, refresh cookie expiry)
-  res.cookie("doctorSessionId", session._id.toString());
+  res.cookie("sessionId", session._id.toString());
 
   // 5️⃣ Respond
   res.status(200).json({
+    doctor,
     success: true,
     message: "doctor Login successfully"
 
@@ -83,13 +161,13 @@ export const loginDoctor = asyncHandler(async (req, res, next) => {
 
 // logout sessions
 export const logoutDoctor = asyncHandler(async (req, res) => {
-  const { doctorSessionId } = req.cookies;
+  const { sessionId} = req.cookies;
 
   // The middleware already ensures sessionId is valid
-  await Session.findByIdAndDelete(doctorSessionId);
+  await Session.findByIdAndDelete({userId:sessionId});
 
   // Clear cookie
-  res.clearCookie("doctorSessionId");
+  res.clearCookie("sessionId");
 
   res.status(200).json({
     success: true,
@@ -106,9 +184,11 @@ export const logoutDoctor = asyncHandler(async (req, res) => {
 
 export const getDoctorAppointments = asyncHandler(async (req, res) => {
 
-  const appointments = await Appointment.find({ doctor: req.doctor.id })
-    .populate("patient", "name email")
+  const appointments = await Appointment.find({ doctorId: req.userId })
+    .populate("patientId", "fullName  phone")
     .sort({ date: 1 });
+
+    
 
   if (!appointments) {
     return next(new ErrorHandler("appointemetns not found", 401))
@@ -121,59 +201,187 @@ export const getDoctorAppointments = asyncHandler(async (req, res) => {
 });
 
 
+// get confrimed appointments 
 
 
+export const getDoctorConfirmedAppointments = async (req, res) => {
+  try {
+    const doctorId = req.userId;
 
-// Doctor updates status of an appointment //
-export const updateAppointmentStatus = asyncHandler(async (req, res) => {
+    const appointments = await Appointment.find({
+      doctorId,
+      status: "confirmed"
+    })
+      .populate("patientId", "firstName lastName")
+      .populate("slotId");
 
-  const { appointmentId } = req.params;
-  const { status } = req.body;
+    const result = appointments.map(app => ({
+      ...app.toObject(),
+      canJoinCall: canJoinCall(app.slotId)
+    }));
 
-  // Only allow valid statuses for doctor
-  const allowedStatuses = ["approved", "rejected", "completed", "cancelled"];
-  if (!allowedStatuses.includes(status)) {
+    res.json(result);
 
-    return next(new ErrorHandler("Invalid status", 400))
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
+};
 
-  // Find the appointment and check if it belongs to this doctor
-  const appointment = await Appointment.findOne({ _id: appointmentId, doctor: req.doctor.id });
-  if (!appointment) {
-    return next(new ErrorHandler("Appointment not found", 404))
 
+
+
+
+
+
+// accept btn api
+export const acceptAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const doctorId = req.userId;
+
+    const appointment = await Appointment.findById(appointmentId);
+
+    if (!appointment)
+      return res.status(404).json({ message: "Appointment not found" });
+
+    // doctor authorization
+    if (appointment.doctorId.toString() !== doctorId.toString())
+      return res.status(403).json({ message: "Unauthorized" });
+
+    // payment must be completed
+    if (appointment.paymentStatus !== "paid")
+      return res.status(400).json({ message: "Payment not completed" });
+
+    // valid state check
+    if (appointment.status !== "paid")
+      return res.status(400).json({ message: "Appointment not ready for acceptance" });
+
+    // accept appointment
+    appointment.status = "confirmed";
+    await appointment.save();
+
+    // notify patient
+    await Notification.create({
+      patientId: appointment.patientId,
+      role: "patient",
+      title: "Appointment Confirmed",
+      message: "Your appointment has been accepted by the doctor.",
+      type: "appointment"
+    });
+
+    res.status(200).json({
+      message: "Appointment accepted successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
   }
-
-  appointment.status = status;
-  await appointment.save();
-
-  res.status(200).json({ success: true, message: "update the status successfully" });
-
-})
+};
 
 
 
 
 
+// reject btn api 
+export const rejectAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const doctorId = req.userId;
 
-// Get all confirmed (approved) appointments for doctor
-export const getConfirmedAppointments = asyncHandler(async (req, res) => {
+    const appointment = await Appointment.findById(appointmentId);
 
-  const appointments = await Appointment.find({ doctor: req.doctor.id, status: "approved" })
-    .populate("patient", "name email")
-    .sort({ date: 1 });
+    if (!appointment)
+      return res.status(404).json({ message: "Appointment not found" });
 
-  res.status(200).json({ success: true, appointments });
+    // doctor authorization
+    if (appointment.doctorId.toString() !== doctorId.toString())
+      return res.status(403).json({ message: "Unauthorized" });
 
-});
+    // payment check
+    if (appointment.paymentStatus !== "paid")
+      return res.status(400).json({ message: "Payment not completed" });
+
+    // prevent double action
+    if (appointment.status !== "paid")
+      return res.status(400).json({ message: "Appointment cannot be rejected now" });
+
+    // reject appointment
+    appointment.status = "rejected";
+    await appointment.save();
+
+    // release slot
+    await Slot.findByIdAndUpdate(appointment.slotId, {
+      isBooked: false,
+      patientId: null
+    });
+
+    // notify patient
+    await Notification.create({
+      patientId: appointment.patientId,
+      role: "patient",
+      title: "Appointment Rejected",
+      message: "The doctor rejected your appointment. Please book another slot.",
+      type: "appointment"
+    });
+
+    res.status(200).json({
+      message: "Appointment rejected successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 
 
+// completed Api 
+
+export const completeAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const doctorId = req.userId;
+
+    const appointment = await Appointment.findById(appointmentId);
+
+    if (!appointment)
+      return res.status(404).json({ message: "Appointment not found" });
+
+    if (appointment.doctorId.toString() !== doctorId.toString())
+      return res.status(403).json({ message: "Unauthorized" });
+
+    if (appointment.status !== "confirmed")
+      return res.status(400).json({ message: "Appointment not active" });
+
+    appointment.status = "completed";
+    await appointment.save();
+
+    // notify patient
+    await Notification.create({
+      patientId: appointment.patientId,
+      role: "patient",
+      title: "Appointment Completed",
+      message: "Your appointment has been completed. You can now leave a review.",
+      type: "appointment"
+    });
+
+    res.json({ message: "Appointment marked as completed" });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+//******************************Appointment Apis ends from here************************************ *//
 
 // Controller to get all patients for a doctor dashboard
 export const getDoctorPatients = async (req, res) => {
   try {
-    const doctorId = req.doctor.id;
+    const doctorId = req.userId;
 
     // Get all appointments for this doctor
     const appointments = await Appointment.find({ doctor: doctorId })
@@ -219,17 +427,40 @@ export const getDoctorPatients = async (req, res) => {
 
 
 export const createGig = asyncHandler(async (req, res, next) => {
-  const validatedData = createGigSchema.parse({
+  
+  
+  const result = createGigSchema.safeParse({
     ...req.body,
     profileImage: req.file,
   });
-
   
+  
+if (!result.success) {
+  const errors = {};
 
+  if (result.error instanceof ZodError) {
+    result.error.issues.forEach(issue => {
+      const field = issue.path?.[0] ?? "general";
 
-  const gig = await DoctorGig.create({
-    doctorId: req.doctor._id, // assuming doctor is logged in and user info is in req.user
-    ...validatedData,
+      if (!errors[field]) {
+        errors[field] = issue.message;
+      }
+    });
+  }
+
+  return res.status(400).json({
+    success: false,
+    message: "Validation failed",
+    errors,
+  });
+}
+const validatedData = result.data
+ await DoctorGig.create({
+    doctorId: req.userId, // assuming doctor is logged in and user info is in req.user
+    serviceTitle : validatedData.serviceTitle,
+    consultationFee: validatedData.consultationFee,
+    duration : validatedData.duration,
+    description: validatedData.description,    
     profileImage: req.file.filename
   });
 
@@ -246,11 +477,11 @@ export const createGig = asyncHandler(async (req, res, next) => {
 // @access  Private (Doctor only)
 
 export const getMyGigs = asyncHandler(async (req, res, next) => {
-  const gigs = await DoctorGig.find({ doctorId: req.doctor._id });
+  const consultation = await DoctorGig.findOne({ doctorId: req.userId });
 
   res.status(200).json({
     success: true,
-     gigs
+    consultation
   });
 });
 
@@ -263,33 +494,33 @@ export const getMyGigs = asyncHandler(async (req, res, next) => {
 // @access  Private (Doctor only)
 
 export const updateGig = asyncHandler(async (req, res, next) => {
-  const {id} = req.params;
-  if(!id){
-    return next(new ErrorHandler("Gig Id not found" , 404))
+  const { id } = req.params;
+  if (!id) {
+    return next(new ErrorHandler("Gig Id not found", 404))
   }
-   const validatedData = updateGigSchema.parse(req.body);
+  const validatedData = updateGigSchema.parse(req.body);
 
-    // Find current gig
-    const gig = await DoctorGig.findById(id);
-    if (!gig) return res.status(404).json({ message: "Gig not found" });
+  // Find current gig
+  const gig = await DoctorGig.findById(id);
+  if (!gig) return res.status(404).json({ message: "Gig not found" });
 
-    // If new image provided
-    if (req.file) {
-      validatedData.profileImage = req.file.filename;
+  // If new image provided
+  if (req.file) {
+    validatedData.profileImage = req.file.filename;
 
-      // Optional: delete old file from uploads folder
-      // fs.unlinkSync(`uploads/${gig.profileImage}`);
-    } else {
-      // Keep old image
-      validatedData.profileImage = gig.profileImage;
-    }
+    // Optional: delete old file from uploads folder
+    // fs.unlinkSync(`uploads/${gig.profileImage}`);
+  } else {
+    // Keep old image
+    validatedData.profileImage = gig.profileImage;
+  }
 
-    const updated = await DoctorGig.findByIdAndUpdate(id, validatedData, { new: true });
+  const updated = await DoctorGig.findByIdAndUpdate(id, validatedData, { new: true });
 
-    return res.json({
-      message: "Gig updated successfully",
-      gig: updated,
-    });
+  return res.json({
+    message: "Gig updated successfully",
+    gig: updated,
+  });
 });
 
 
@@ -300,18 +531,23 @@ export const updateGig = asyncHandler(async (req, res, next) => {
 // @route   DELETE /api/doctors/gigs/:id
 // @access  Private (Doctor only)
 export const deleteGig = asyncHandler(async (req, res, next) => {
-  const {id} = req.params;
 
-  const gig = await DoctorGig.findById(id);
+  
+  
+
+  const gig = await DoctorGig.findOne({doctorId: req.userId});
 
   if (!gig) {
     return next(new ErrorHandler("Gig not found", 404));
   }
 
   // Ensure the doctor owns the gig
-  if (gig.doctorId.toString() !== req.doctor._id.toString()) {
+  if (gig.doctorId.toString() !== req.userId.toString()) {
     return next(new ErrorHandler("You are not authorized to delete this gig", 403));
   }
+ 
+
+  //  A place where I will delete the file 
 
   await gig.deleteOne();
 
@@ -328,42 +564,63 @@ export const deleteGig = asyncHandler(async (req, res, next) => {
 // ************** availability  start here ****************** //
 
 export const createOrUpdateAvailability = asyncHandler(async (req, res) => {
- 
-    const doctorId = req.doctor._id; // from auth middleware
-    const parsedData = availabilitySchema.parse(req.body);
 
-    const availability = await DoctorAvailability.findOneAndUpdate(
-      { doctorId },
-      { days: parsedData.days },
-      { new: true, upsert: true }
-    );
+  const doctorId = req.userId; // from auth middleware
+  const result = availabilitySchema.safeParse(req.body);
 
-    const doctor = await Doctor.findById(doctorId)
-     await generateSlots(doctorId, doctor.duration);
-    res.status(200).json({
-      success: true,
-      message: "Availability saved successfully",
-      data: availability
-    })
 
+  if (!result.success) {
+  const errors = {};
+
+  if (result.error instanceof ZodError) {
+    result.error.issues.forEach(issue => {
+      const field = issue.path?.[0] ?? "general";
+
+      if (!errors[field]) {
+        errors[field] = issue.message;
+      }
+    });
+  }
+
+  return res.status(400).json({
+    success: false,
+    message: "Validation failed",
+    errors,
+  });
+}
+const parsedData = result.data;
+  const availability = await DoctorAvailability.findOneAndUpdate(
+    { doctorId },
+    { days: parsedData.days },
+    { new: true, upsert: true }
+  );
+
+  const doctor = await Doctor.findById(doctorId)
+  await generateSlots(doctorId, doctor.duration);
+  res.status(200).json({
+    success: true,
+    message: "Availability saved successfully",
+    data: availability
   })
+
+})
 
 
 
 
 // get availability 
 
-export const getAvailability =asyncHandler( async (req, res) => {
-  
-    const doctorId = req.doctor._id;
-    const availability = await DoctorAvailability.findOne({ doctorId });
+export const getAvailability = asyncHandler(async (req, res) => {
 
-    if (!availability) {
-      return res.status(404).json({ success: false, message: "No availability found" });
-    }
+  const doctorId = req.userId;
+  const availability = await DoctorAvailability.findOne({ doctorId });
 
-    res.status(200).json({ success: true, data: availability });
-  
+  if (!availability) {
+    return res.status(404).json({ success: false, message: "No availability found" });
+  }
+
+  res.status(200).json({ success: true, data: availability });
+
 })
 
 
@@ -371,69 +628,7 @@ export const getAvailability =asyncHandler( async (req, res) => {
 
 
 
-// ************** slot start from here ********** //
 
-
-
-
-
-
-// @desc    Create a new slot
-// @route   POST /api/slots
-// @access  Doctor (Private)
-
-export const createSlot = asyncHandler(async (req, res, next) => {
-  const { doctorId, startTime, endTime } = req.body;
-
-  if (!doctorId || !startTime || !endTime) {
-    return next(new ErrorHandler("All fields are required.", 400));
-  }
-
-  const doctor = await Doctor.findById(doctorId);
-  if (!doctor) {
-    return next(new ErrorHandler("Doctor not found.", 404));
-  }
-
-  const slot = await Slot.create({
-    doctor: doctorId,
-    startTime,
-    endTime,
-  });
-
-  res.status(201).json({
-    success: true,
-    message: "Slot created successfully.",
-    data: slot,
-  });
-});
-
-
-
-// GET available slots for a doctor on a specific date
-export const getAvailableSlots = asyncHandler(async (req, res, next) => {
-  const { doctorId, date } = req.query;
-
-    if (!doctorId || !date) {
-      return res.status(400).json({ success: false, message: "Doctor and date are required" });
-    }
-
-    // Convert string date to Date object (ignore time)
-    const selectedDate = new Date(date);
-    selectedDate.setHours(0, 0, 0, 0);
-
-    // Find slots for that doctor on the selected date which are not booked
-    const slots = await Slot.find({
-      doctorId,
-      date: selectedDate,
-      isBooked: false
-    }).sort({ startTime: 1 }); // sort by start time
-
-    res.status(200).json({ success: true, data: slots });
-});
-
-
-
-// ******** slot apis ends here **********//
 
 
 
@@ -453,7 +648,7 @@ export const createBankDetails = asyncHandler(async (req, res, next) => {
     return next(new ErrorHandler("All fields are required.", 400));
   }
 
-  const existing = await BankDetails.findOne({ doctor: req.doctor._id });
+  const existing = await BankDetails.findOne({ doctor: req.userId });
   if (existing) {
     return next(new ErrorHandler("Bank details already exist. Use update API.", 400));
   }
@@ -481,7 +676,7 @@ export const createBankDetails = asyncHandler(async (req, res, next) => {
 export const updateBankDetails = asyncHandler(async (req, res, next) => {
   const { accountHolderName, accountNumber, bankName, ifscCode } = req.body;
 
-  const bankDetails = await BankDetails.findOne({ doctor: req.doctor._id });
+  const bankDetails = await BankDetails.findOne({ doctor: req.userId });
   if (!bankDetails) {
     return next(new ErrorHandler("Bank details not found. Use create API.", 404));
   }
@@ -506,7 +701,7 @@ export const updateBankDetails = asyncHandler(async (req, res, next) => {
  * @access  Private (Doctor)
  */
 export const getBankDetails = asyncHandler(async (req, res, next) => {
-  const bankDetails = await BankDetails.findOne({ doctor: req.doctor._id });
+  const bankDetails = await BankDetails.findOne({ doctor: req.userId });
 
   if (!bankDetails) {
     return next(new ErrorHandler("Bank details not found.", 404));
@@ -520,7 +715,7 @@ export const getBankDetails = asyncHandler(async (req, res, next) => {
 
 
 export const deleteBankDetails = asyncHandler(async (req, res, next) => {
-  const bankDetails = await BankDetails.findOne({ doctor: req.doctor._id });
+  const bankDetails = await BankDetails.findOne({ doctor: req.userId });
 
   if (!bankDetails) {
     return next(new ErrorHandler("Bank details not found.", 404));
@@ -546,7 +741,7 @@ export const deleteBankDetails = asyncHandler(async (req, res, next) => {
  * @access  Private (Doctor)
  */
 export const getDoctorEarnings = asyncHandler(async (req, res, next) => {
-  const doctorId = req.doctor._id;
+  const doctorId = req.userId;
 
   // Only count completed and paid appointments
   const completedAppointments = await Appointment.find({ doctor: doctorId, status: "completed", paid: true });
@@ -576,7 +771,7 @@ export const getDoctorEarnings = asyncHandler(async (req, res, next) => {
 
 
 export const getDoctorOverview = asyncHandler(async (req, res, next) => {
-  const doctorId = req.doctor._id;
+  const doctorId = req.userId;
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -650,7 +845,7 @@ export const addMedicalRecord = asyncHandler(async (req, res, next) => {
 
   const record = await MedicalRecord.create({
     patient: patientId,
-    doctor: req.doctor._id,
+    doctor: req.userId,
     appointment: appointmentId,
     description,
     files, // array of {filename, url}

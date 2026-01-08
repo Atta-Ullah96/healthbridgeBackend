@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt  from "bcryptjs";
+import bcrypt from "bcryptjs";
 
 const doctorSchema = new mongoose.Schema(
   {
@@ -50,8 +50,7 @@ const doctorSchema = new mongoose.Schema(
     },
     cnicNumber: {
       type: String,
-      required: [true, "CNIC number is required"],
-      match: [/^[0-9]{13}$/, "Please enter a valid 13-digit CNIC number"],
+   
     },
     pmcCertificate: {
       type: String, // URL or file path
@@ -59,9 +58,32 @@ const doctorSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ["Male", "Female", "Other"],
+      enum: ["male", "female", "other"],
       required: [true, "Gender is required"],
     },
+    averageRating: {
+      type: Number,
+      default: 0
+    },
+    totalReviews: {
+      type: Number,
+      default: 0
+    },
+    
+    isBanned : {
+      type:Boolean,
+      default : false,
+      
+    },
+    isVerified:{
+      type:Boolean ,
+      default : false
+    },
+    role:{
+      type:String,
+      default: 'doctor'
+    },
+ 
   },
   { timestamps: true }
 );

@@ -6,6 +6,7 @@ const slotSchema = new mongoose.Schema({
   startTime: { type: String, required: true },  // "10:00"
   endTime: { type: String, required: true },    // "10:30"
   isBooked: { type: Boolean, default: false }, // true if already booked
+  patientId: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" }
 });
 
 export const Slot = mongoose.model("Slot", slotSchema);

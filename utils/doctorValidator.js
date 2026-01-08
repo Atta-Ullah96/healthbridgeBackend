@@ -1,31 +1,40 @@
 import { z } from "zod";
 
-// Gender enum
-const genderEnum = z.enum(["Male", "Female", "Other"]);
-
-// Doctor registration schema
 export const doctorRegistrationSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  medicalUniversity: z.string().min(2, "University name is required"),
-  specialization: z.string().min(2, "Specialization is required"),
-  phoneNumber: z.string().min(10, "Phone number is required"),
-  email: z.string().email("Invalid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  city: z.string().min(2, "City is required"),
-  pmcNumber: z.string().min(5, "PMC number is required"),
-  cnicNumber: z.string().min(13, "CNIC number is required"),
+  firstName: z.string().nonempty("First Name must be required").min(2, "First name should be 2 characters"),
+  lastName: z.string().nonempty("Last Name must be required").min(2, "First name should be 2 characters"),
+  medicalUniversity: z.string().nonempty("Medical University  must be required").min(1, "Medical university should be more than two characters"),
+  specialization: z.string().nonempty("Specialization must be required").min(1, "Specialization is required"),
+  phoneNumber: z.string().min(11, "Phone number must be at least  11  characters"),
+  email: z.string().nonempty("Email should be required").email("Email is invalid"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  city: z.string().min(1, "City is required"),
+  pmcNumber: z.string().min(1, "PMC number is required"),
+  cnicNumber: z
+    .string()
+    .nonempty("CNIC number is required")
+    .regex(/^\d{5}-\d{7}-\d{1}$/, "CNIC must be 00000-0000000-0 format")
+    .transform(val => val.replace(/-/g, "")), // store clean CNIC,
+  gender: z.string().min(1, "Gender is required"),
   pmcCertificate: z
-    .any()
-    .refine(file => file && (file.mimetype === "application/pdf" || file.mimetype === "application/msword"), {
-      message: "PMC certificate must be a PDF or Word document"
-    }),
-  gender: genderEnum
+  .any()
+  .refine(file => !!file, { message: "PMC certificate is required" })
+  .refine(
+    file =>
+      !file || // if file is null, skip this refine
+      file.mimetype === "application/pdf" ||
+      file.mimetype === "application/msword" ||
+      file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    { message: "PMC certificate must be a PDF or Word document" }
+  )
+
 });
+
 
 export const doctorLogin = z.object({
   email: z.string().email("invalid Email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 })
 
 
@@ -55,9 +64,6 @@ export const createGigSchema = z.object({
     .string()
     .min(3, "Service title must be at least 3 characters long"),
 
-  specialization: z
-    .string()
-    .min(3, "Specialization is required and must be valid"),
 
   description: z
     .string()
@@ -94,7 +100,7 @@ export const timeSlotSchema = z.object({
 
 export const daySchema = z.object({
   day: z.enum([
-    "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
   ]),
   isAvailable: z.boolean(),
   timeSlots: z.array(timeSlotSchema)

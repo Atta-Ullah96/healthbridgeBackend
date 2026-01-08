@@ -1,23 +1,32 @@
 import { DoctorAvailability } from "../models/doctor/availavbility.js";
-import { Slot } from "../models/doctor/slots.js";
+import { Slot } from "../models/slots/slots.js";
 
+
+
+// Generate slots for the next 7 days
 export const generateSlots = async (doctorId, duration = 30) => {
   const availability = await DoctorAvailability.findOne({ doctorId });
   if (!availability) return;
 
   const today = new Date();
-  const daysToGenerate = 30;
+  const daysToGenerate = 7;
   const slotsToInsert = [];
 
-  for (let i = 0; i < daysToGenerate; i++) {
-    const currentDate = new Date();
-    currentDate.setDate(today.getDate() + i);
-    const currentDayName = currentDate.toLocaleDateString("en-US", { weekday: "long" });
+  // Weekday names map (0 = Sunday, 6 = Saturday)
+  const weekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-    const dayAvailability = availability.days.find(d => d.day === currentDayName && d.isAvailable);
+  for (let i = 0; i < daysToGenerate; i++) {
+    const currentDate = new Date(today);
+    currentDate.setDate(today.getDate() + i);
+    currentDate.setHours(0, 0, 0, 0); // normalize to start of day
+    const currentDayName = weekDays[currentDate.getDay()];
+
+    const dayAvailability = availability.days.find(
+      (d) => d.day === currentDayName && d.isAvailable
+    );
     if (!dayAvailability) continue;
 
-    dayAvailability.timeSlots.forEach(slotRange => {
+    dayAvailability.timeSlots.forEach((slotRange) => {
       let start = convertToMinutes(slotRange.startTime);
       const end = convertToMinutes(slotRange.endTime);
 
@@ -27,10 +36,10 @@ export const generateSlots = async (doctorId, duration = 30) => {
 
         slotsToInsert.push({
           doctorId,
-          date: currentDate,
+          date: new Date(currentDate), // ensure each slot gets a new Date object
           startTime,
           endTime,
-          isBooked: false
+          isBooked: false,
         });
 
         start += duration;
@@ -41,14 +50,19 @@ export const generateSlots = async (doctorId, duration = 30) => {
   // Insert slots, avoid duplicates
   for (const slot of slotsToInsert) {
     await Slot.updateOne(
-      { doctorId: slot.doctorId, date: slot.date, startTime: slot.startTime, endTime: slot.endTime },
+      {
+        doctorId: slot.doctorId,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      },
       { $setOnInsert: slot },
       { upsert: true }
     );
   }
 };
 
-// Helpers
+// Helper functions
 const convertToMinutes = (timeStr) => {
   const [h, m] = timeStr.split(":").map(Number);
   return h * 60 + m;

@@ -37,10 +37,7 @@ const patientSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    profilePhoto: {
-      type: String, // URL or filename
-      default: null,
-    },
+  
   },
   { timestamps: true }
 );

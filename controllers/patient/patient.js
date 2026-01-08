@@ -1,61 +1,34 @@
 
-import {Patient} from "../../models/patient/patient.js";
+import { Patient } from "../../models/patient/patient.js";
 import { asyncHandler } from '../../utils/asyncHandler.js'
 import Session from "../../models/session.js";
-import Appointment from "../../models/appointements/appointements.js";
+import {Appointment} from "../../models/appointements/appointements.js";
 import ErrorHandler from "../../utils/errorHandler.js";
 import { MedicalRecord } from "../../models/doctor/medicalrecord.js";
+import { patientloginSchema, patientRegisterSchema } from "../../utils/patientValidator.js";
 
 // Register new patient
 export const registerPatient = asyncHandler(async (req, res) => {
 
-    const {
-        fullName,
-        email,
-        password,
-        confirmPassword,
-        gender,
-        age,
-        phone,
-        address,
-    } = req.body;
+    const result = patientRegisterSchema.safeParse(req.body);
 
-    if (
-        !fullName ||
-        !email ||
-        !password ||
-        !confirmPassword ||
-        !gender ||
-        !age ||
-        !phone ||
-        !address
-    ) {
-        return res.status(400).json({ message: "All fields are required" });
+
+    if (!result.success) {
+        return res.status(400).json({
+            errors: result.error.errors,
+        });
     }
 
-    if (password !== confirmPassword) {
-        return res.status(400).json({ message: "Passwords do not match" });
-    }
+    const data = result.data;
 
-    const existing = await Patient.findOne({ email });
+    const existing = await Patient.findOne({ email: data.email });
     if (existing) {
         return res.status(400).json({ message: "Email already registered" });
     }
 
-    const profilePhoto = req.file ? req.file.filename : null;
 
-    const patient = await Patient.create({
-        fullName,
-        email,
-        password,
-        gender,
-        age,
-        phone,
-        address,
-        profilePhoto,
-    });
+    await Patient.create(data);
 
-  
 
     res.status(201).json({
         success: true,
@@ -69,60 +42,69 @@ export const registerPatient = asyncHandler(async (req, res) => {
 export const loginPatient = asyncHandler(
     async (req, res) => {
 
-        const { email, password } = req.body;
+        const result = patientloginSchema.safeParse(req.body);
+
+        if (!result.success) {
+            return res.status(400).json({
+                errors: result.error.errors,
+            });
+        }
+
+        const { email, password } = result.data;
 
         const patient = await Patient.findOne({ email }).select("+password");
         if (!patient) {
-         
-            return next(new ErrorHandler("Invalid email or password" , 400))
+
+            return next(new ErrorHandler("Invalid email or password", 400))
         }
-        
+
         const isMatch = await patient.matchPassword(password);
         if (!isMatch) {
-            
-            return next(new ErrorHandler("Invalid email or password" , 400))
+
+            return next(new ErrorHandler("Invalid email or password", 400))
         }
 
-        let session = await Session.findOne({ patientId: patient._id });
+        let session = await Session.findOne({ userId: patient._id });
 
-  
+
         if (!session) {
             const ttlMs = 24 * 60 * 60 * 1000; // 24 hours
             const expiresAt = new Date(Date.now() + ttlMs);
 
             session = await Session.create({
-                patientId: patient._id,
+                userId: patient._id,
+                "role":"patient",
                 createdAt: new Date(),
                 expiresAt,
             });
         }
 
         // 4️⃣ Set cookie (even if same session, refresh cookie expiry)
-        res.cookie("pateintSessionId", session._id.toString()).json({
-            success: true ,
+        res.cookie("sessionId", session._id.toString()).json({
+            success: true,
             message: "patient Login successfully"
         })
 
 
-        
+
 
     }
 )
 
 // logout sessions
 export const logoutPatient = asyncHandler(async (req, res) => {
-  const {patientSessionId } = req.cookies;
+    const { sessionId } = req.cookies;
 
-  // The middleware already ensures sessionId is valid
-  await Session.findByIdAndDelete(patientSessionId);
+    // The middleware already ensures sessionId is valid
+    await Session.findByIdAndDelete(sessionId);
 
-  // Clear cookie
-  res.clearCookie("patientSessionId");
+    // Clear cookie
+    res.clearCookie("sessionId");
 
-  res.status(200).json({
-    success: true,
-    message: "Patient logged out successfully",
-  });
+    res.status(200).json({
+        success: true,
+        message: "Patient logged out successfully",
+    });
 });
 
 
@@ -136,18 +118,18 @@ export const createAppointment = asyncHandler(async (req, res) => {
 
     // req.user.id comes from patient auth middleware
     const appointment = new Appointment({
-      patient: req.patient._id, // patient id
-      doctor,
-      date,
-      timeSlot,
-      reason,
+        patient: req.userId, // patient id
+        doctor,
+        date,
+        timeSlot,
+        reason,
     });
 
     await appointment.save();
-    res.status(201).json({ success: true, message : "Appointment created successfully" });
+    res.status(201).json({ success: true, message: "Appointment created successfully" });
 
- 
-   
+
+
 
 });
 
@@ -157,19 +139,19 @@ export const createAppointment = asyncHandler(async (req, res) => {
 
 
 export const getPatientAppointments = asyncHandler(async (req, res) => {
- 
-    const appointments = await Appointment.find({ patient: req.patient.id })
-      .populate("doctor", "name specialty") // fetch doctor details
-      .sort({ date: 1 });
 
-      if(!appointments){
-        return next(new ErrorHandler("Appointments not found" , 401))
-      }
+    const appointments = await Appointment.find({ patient: req.userId })
+        .populate("doctor", "name specialty") // fetch doctor details
+        .sort({ date: 1 });
+
+    if (!appointments) {
+        return next(new ErrorHandler("Appointments not found", 401))
+    }
 
     res.status(200).json({ success: true, appointments });
 
-    
- 
+
+
 });
 
 // ***************** appointemnt apis end here ******************* //
@@ -182,15 +164,15 @@ export const getPatientAppointments = asyncHandler(async (req, res) => {
  * @access  Doctor/Patient
  */
 export const getMedicalRecords = asyncHandler(async (req, res, next) => {
-  const { patientId } = req.params;
+    const { patientId } = req.params;
 
-  const records = await MedicalRecord.find({ patient: patientId }).populate("doctor", "name specialization");
+    const records = await MedicalRecord.find({ patient: patientId }).populate("doctor", "name specialization");
 
-  res.status(200).json({
-    success: true,
-    count: records.length,
-    data: records,
-  });
+    res.status(200).json({
+        success: true,
+        count: records.length,
+        data: records,
+    });
 });
 
 // ***************** medical record  apis end here ******************* //

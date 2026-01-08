@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { addMedicalRecord, createBankDetails, createGig, createOrUpdateAvailability, createSlot, deleteBankDetails, deleteGig,  getAvailableSlots, getBankDetails, getConfirmedAppointments, getDoctorAppointments, getDoctorEarnings, getDoctorOverview, getDoctorPatients, getMyGigs,  loginDoctor, logoutDoctor, registerDoctor, updateAppointmentStatus, updateBankDetails, updateGig } from "../../controllers/doctor/doctor.js";
-import authDoctor from "../../middleware/doctorAuthMiddleware.js";
+import { acceptAppointment, addMedicalRecord, completeAppointment, createBankDetails, createGig, createOrUpdateAvailability, deleteBankDetails, deleteGig ,getAvailability,getBankDetails, getDoctorAppointments, getDoctorConfirmedAppointments, getDoctorEarnings, getDoctorOverview, getDoctorPatients, getMyGigs,  loginDoctor, logoutDoctor, registerDoctor, rejectAppointment, updateBankDetails, updateGig } from "../../controllers/doctor/doctor.js";
+
 import { upload } from "../../middleware/multer.js";
-import authPatient from "../../middleware/patientAuthMiddleware.js";
+import { auth } from "../../middleware/auth.js";
+
 
 const router  = Router();
 
@@ -13,66 +14,60 @@ const router  = Router();
 
 router.post("/register" , upload.single("pmcCertificate"),registerDoctor)
 router.post("/login" , loginDoctor)
-router.post("/logout" , authDoctor , logoutDoctor)
+router.post("/logout" , auth(["doctor"]) , logoutDoctor)
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^ authentication apis start ^^^^^^^^^^^^^^^^^^ //
 
 
 // ************************** Availability apis start from here ************* //
-router.post("/availability" , authDoctor , createOrUpdateAvailability)
+router.post("/availability" , auth(["doctor"]) , createOrUpdateAvailability)
+router.get("/availability" , auth(["doctor"]) , getAvailability)
 // ************************** Availability apis end from here ************* //
 
 
 // *************************** Appointments start  ************************ //
-router.get("/appointments/all" , authDoctor , getDoctorAppointments)
-router.get("/appointments/confirmed", authDoctor, getConfirmedAppointments);
-router.patch("/appointments/:appointmentId/status", authDoctor, updateAppointmentStatus);
+router.get("/appointments/all" , auth(["doctor"]) , getDoctorAppointments)
+router.get("/appointments/confirmed", auth(["doctor"]), getDoctorConfirmedAppointments);
+router.patch("/appointments/:appointmentId/accept" , auth(["doctor"]) , acceptAppointment)
+router.patch("/appointments/:appointmentId/reject" , auth(["doctor"]) , rejectAppointment)
+router.patch("/appointments/:appointmentId/complete" , auth(["doctor"]) , completeAppointment)
 
 // *************************** Appointments end  ************************ //
 
 // *************************** Patients  start  ************************ //
 
-router.get("/patients", authDoctor, getDoctorPatients);
+router.get("/patients", auth(["doctor"]), getDoctorPatients);
 // *************************** Patients  end  ************************ //
 
 // *************************** gig  start  ************************ //
-router.post("/gig", authDoctor, upload.single("profileImage"), createGig);
-router.get("/gig", authDoctor, getMyGigs);
-router.put("/gig/:id", upload.single("profileImage") ,authDoctor, updateGig);
-router.delete("/gig/:id", authDoctor, deleteGig);
+router.post("/consultation", auth(["doctor"]), upload.single("profileImage"), createGig);
+router.get("/consultation", auth(["doctor"]), getMyGigs);
+router.put("/consultation/:id", upload.single("profileImage") ,auth(["doctor"]), updateGig);
+router.delete("/consultation", auth(["doctor"]), deleteGig);
 // *************************** gig  end  ************************ //
 
 
-// *************************** slot  start  ************************ //
-
-router.post("/create",   authDoctor , createSlot);
-router.get("/get",  authPatient , getAvailableSlots);
-
-// *************************** slot  end  ************************ //
-
-
-
 // *************************** bank  start  ************************ //
-router.post("/bank", authDoctor, createBankDetails);  // Create
-router.put("/bank", authDoctor, updateBankDetails);  // Update
-router.get("/bank", authDoctor, getBankDetails);     // Get
-router.delete("/bank", authDoctor, deleteBankDetails); 
+router.post("/bank", auth(["doctor"]), createBankDetails);  // Create
+router.put("/bank", auth(["doctor"]), updateBankDetails);  // Update
+router.get("/bank", auth(["doctor"]), getBankDetails);     // Get
+router.delete("/bank", auth(["doctor"]), deleteBankDetails); 
 // *************************** bank  end  ************************ //
 
 // *************************** earning  start  ************************ //
 
-router.get("/earnings", authDoctor , getDoctorEarnings);
+router.get("/earnings", auth(["doctor"]) , getDoctorEarnings);
 
 // *************************** earning  end  ************************ //
 
 // *************************** overview  start  ************************ //
 
-router.get("/overview", authDoctor , getDoctorOverview);
+router.get("/overview", auth(["doctor"]) , getDoctorOverview);
 
 // *************************** overview  end  ************************ //
 
 // *************************** medical  record start  ************************ //
 
-router.post("/", authDoctor, addMedicalRecord);
+router.post("/", auth(["doctor"]), addMedicalRecord);
 // *************************** medical  record end  ************************ //
 
 
