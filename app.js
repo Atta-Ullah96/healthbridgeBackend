@@ -1,8 +1,7 @@
+import { PORT } from './config/config.js';
 import express from 'express';
 const app = express();
-import dotenv from 'dotenv';
 import errorHandler from './middleware/errorMiddleware.js';
-dotenv.config()
 import cookieParser from 'cookie-parser';
 import { stripeWebhook } from './controllers/appointment/appointment.js';
 import { labStripeWebhook } from './controllers/laboratory/laboratory.js';
@@ -10,6 +9,7 @@ import cors from 'cors'
 // import  cron from 'node-cron'
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
+
 
 
 
@@ -105,6 +105,7 @@ import admin from './routes/admin/admin.js'
 import { zodErrorHandler } from './middleware/zodErrorMiddleware.js';
 
 
+
 app.use("/api/v1/admin" , admin)
 // **************************** admin routes end ************* // 
 
@@ -112,6 +113,6 @@ app.use("/api/v1/admin" , admin)
 app.use(zodErrorHandler);
 app.use(errorHandler)
 
-app.listen(process.env.PORT , () =>{
+app.listen(PORT , () =>{
     console.log("server is running on port number 4000")
 })
