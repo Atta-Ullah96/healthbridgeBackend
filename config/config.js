@@ -11,3 +11,6 @@ export const ADMIN_HEALTHBRIDGE_DOMAIN = process.env.ADMIN_HEALTHBRIDGE_DOMAIN
 export const STRIPE_KEY = process.env.STRIPE_KEY
 export const STRIPE_SUCCESS_URL = process.env.STRIPE_SUCCESS_URL
 export const STRIPE_CANCEL_URL = process.env.STRIPE_CANCEL_URL
+export const AWS_S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME
+export const AGORA_APP_ID = process.env.AGORA_APP_ID
+export const AGORA_APP_CERTIFICATE  = process.env.AGORA_APP_CERTIFICATE 

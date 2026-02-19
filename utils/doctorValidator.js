@@ -1,34 +1,9 @@
 import { z } from "zod";
 
-export const doctorRegistrationSchema = z.object({
-  firstName: z.string().nonempty("First Name must be required").min(2, "First name should be 2 characters"),
-  lastName: z.string().nonempty("Last Name must be required").min(2, "First name should be 2 characters"),
-  medicalUniversity: z.string().nonempty("Medical University  must be required").min(1, "Medical university should be more than two characters"),
-  specialization: z.string().nonempty("Specialization must be required").min(1, "Specialization is required"),
-  phoneNumber: z.string().min(11, "Phone number must be at least  11  characters"),
-  email: z.string().nonempty("Email should be required").email("Email is invalid"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  city: z.string().min(1, "City is required"),
-  pmcNumber: z.string().min(1, "PMC number is required"),
-  cnicNumber: z
-    .string()
-    .nonempty("CNIC number is required")
-    .regex(/^\d{5}-\d{7}-\d{1}$/, "CNIC must be 00000-0000000-0 format")
-    .transform(val => val.replace(/-/g, "")), // store clean CNIC,
-  gender: z.string().min(1, "Gender is required"),
-  pmcCertificate: z
-  .any()
-  .refine(file => !!file, { message: "PMC certificate is required" })
-  .refine(
-    file =>
-      !file || // if file is null, skip this refine
-      file.mimetype === "application/pdf" ||
-      file.mimetype === "application/msword" ||
-      file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    { message: "PMC certificate must be a PDF or Word document" }
-  )
-
+export const doctorRegisterSchema = z.object({
+  name: z.string().min(3, "Name is required"),
+  email: z.string().email("Invalid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 

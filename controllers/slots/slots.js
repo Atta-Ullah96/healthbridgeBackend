@@ -13,7 +13,6 @@ import ErrorHandler from "../../utils/errorHandler.js";
 export const getAvailableSlots = asyncHandler(async (req, res, next) => {
 
     const { doctorId, date } = req.query;
-    console.log({date});
     
 
     if (!doctorId || !date) {

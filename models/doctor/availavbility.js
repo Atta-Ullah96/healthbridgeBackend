@@ -1,18 +1,19 @@
 import mongoose from "mongoose";
 
-const timeSlotSchema = new mongoose.Schema({
-  startTime: { type: String, required: true }, // e.g., "10:00 AM"
-  endTime: { type: String, required: true }    // e.g., "02:00 PM"
+const timeRangeSchema = new mongoose.Schema({
+  start: { type: String, required: true }, // "09:00"
+  end: { type: String, required: true }    // "17:00"
 });
 
 const daySchema = new mongoose.Schema({
   day: {
     type: String,
-    enum: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+    enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
     required: true
   },
   isAvailable: { type: Boolean, default: false },
-  timeSlots: [timeSlotSchema]
+  timeSlots: [timeRangeSchema],
+  breaks: [timeRangeSchema] // ✅ NEW
 });
 
 const doctorAvailabilitySchema = new mongoose.Schema({
@@ -20,9 +21,15 @@ const doctorAvailabilitySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Doctor",
     required: true,
-    unique: true // one availability document per doctor
+    unique: true
   },
-  days: [daySchema]
+  days: [daySchema],
+  
+  isCompleted: {
+    type: Boolean,
+    default: false,
+  },
 }, { timestamps: true });
 
-export const DoctorAvailability =  mongoose.model("DoctorAvailability", doctorAvailabilitySchema);
+export const DoctorAvailability =
+  mongoose.model("DoctorAvailability", doctorAvailabilitySchema);

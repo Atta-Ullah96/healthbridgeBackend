@@ -9,11 +9,13 @@ export const auth = (allowedRoles = []) => {
       const sessionId = req.cookies.sessionId;
 
       if (!sessionId) {
+
         return res.status(401).json({ message: "Unauthorized" });
       }
 
       const session = await Session.findById(sessionId);
       if (!session) {
+        
         return res.status(401).json({ message: "Session expired" });
       }
 
@@ -26,7 +28,7 @@ export const auth = (allowedRoles = []) => {
 
       // 🔹 Doctor check
       if (session.role === "doctor") {
-        user = await Doctor.findById(session.userId);
+        user = await Doctor.findById(session?.userId);
 
         if (!user) {
           return res.status(401).json({ message: "Doctor not found" });

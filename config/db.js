@@ -1,10 +1,10 @@
 // config/db.js
 import mongoose from "mongoose";
-import { DB_URL } from "./config.js";
+// import { DB_URL } from "./config.js";
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(DB_URL);
+    const conn = await mongoose.connect("mongodb://127.0.0.1:27017/healthbridge");
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {

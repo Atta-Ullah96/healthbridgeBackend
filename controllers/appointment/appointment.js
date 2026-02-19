@@ -4,14 +4,15 @@ import {Slot} from "../../models/slots/slots.js";
 import {Payout} from '../../models/admin/payout.js';
 import Doctor from "../../models/doctor/doctor.js";
 import { createCheckoutSession } from "../../services/stripeService.js";
-import { DoctorGig } from "../../models/doctor/doctorgig.js";
 import { STRIPE_WEBHOOK_SECRET } from '../../config/config.js';
+import { ConsultationSetup } from '../../models/doctor/consultationSetup.js';
 
 
 export const createAppointment = async (req, res) => {
     try {
-        const { slotId, doctorId } = req.body;
-        const patientId = req.patient._id; // Assuming authentication middleware
+        const {appointmentType, selectedDate} = req.body;
+        const { slotId, doctorId } = req.query;
+        const patientId = req.userId; // Assuming authentication middleware
 
         // 1️⃣ Validate slot
         const slot = await Slot.findById(slotId);
@@ -31,9 +32,9 @@ export const createAppointment = async (req, res) => {
 
         // doctor ammount 
        
-        const doctorService = await DoctorGig.findOne({doctorId})
+        const consultationService = await ConsultationSetup.findOne({doctorId})
    
-        const amount = doctorService.consultationFee;
+        const amount = consultationService.fee;
         // 3️⃣ Create appointment
         let appointment = await Appointment.findOne({ slotId, patientId });
 
@@ -56,6 +57,8 @@ export const createAppointment = async (req, res) => {
                 status: "pending",
                 paymentStatus: "pending",
                 amount,
+                appointmentType: appointmentType,
+                selectedDate
             });
 
             // Mark slot as booked
@@ -64,7 +67,7 @@ export const createAppointment = async (req, res) => {
             await slot.save();
         }
         const { sessionId, checkoutUrl } = await createCheckoutSession({
-            doctorName: doctor.firstName + doctor.lastName,
+            doctorName: doctor.name,
             amount,
             appointmentId: appointment._id,
             stripe
@@ -121,7 +124,6 @@ export const stripeWebhook = async (req, res) => {
             
             // ✅ Mark payment as paid
             appointment.paymentStatus = "paid";
-            appointment.status = "paid";
             
             // ✅ Calculate commission & doctor earnings
             const commissionRate = 0.1; // 10%
@@ -152,3 +154,28 @@ export const stripeWebhook = async (req, res) => {
 
 
 
+export const verifyAppointment = async (req, res) => {
+  try {
+    const { sessionId } = req.query;
+    
+    const appointment = await Appointment.findOne({ checkoutSessionId: sessionId }).populate("doctorId slotId");
+    
+    if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+    res.json({
+      appointment: {
+        appointmentId : appointment._id.toString(),
+
+        doctorName: appointment.doctorId.name,
+        dateOfAppointment: appointment.selectedDate,
+        startTime: appointment.slotId.startTime,
+        endTime: appointment.slotId.endTime,
+        appointmentType: appointment.appointmentType,
+        amount: appointment.amount,
+        status: appointment.status
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

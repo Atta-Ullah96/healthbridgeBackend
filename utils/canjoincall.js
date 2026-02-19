@@ -1,17 +1,26 @@
-const canJoinCall = (slot) => {
-  const now = new Date();
+const canJoinCall = (slot, date) => {
+  try {
+    if (!slot?.startTime || !slot?.endTime || !date) return false;
 
-  const slotDate = new Date(slot.date);
-  const [startH, startM] = slot.startTime.split(":");
-  const [endH, endM] = slot.endTime.split(":");
+    const now = new Date();
 
-  const startTime = new Date(slotDate);
-  startTime.setHours(startH, startM, 0);
+    const slotDate = new Date(date);
 
-  const endTime = new Date(slotDate);
-  endTime.setHours(endH, endM, 0);
+    const [startH, startM] = slot.startTime.split(":").map(Number);
+    const [endH, endM] = slot.endTime.split(":").map(Number);
 
-  return now >= startTime && now <= endTime;
+    const startTime = new Date(slotDate);
+    startTime.setHours(startH, startM - 5, 0, 0); // ✅ 5 min early join buffer
+
+    const endTime = new Date(slotDate);
+    endTime.setHours(endH, endM + 5, 0, 0); // ✅ 5 min late buffer
+
+    return now >= startTime && now <= endTime;
+
+  } catch (error) {
+    console.error("canJoinCall error:", error);
+    return false;
+  }
 };
 
-export {canJoinCall};
+export { canJoinCall };

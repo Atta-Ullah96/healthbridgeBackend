@@ -3,87 +3,50 @@ import bcrypt from "bcryptjs";
 
 const doctorSchema = new mongoose.Schema(
   {
-    firstName: {
+    name: {
       type: String,
-      required: [true, "First name is required"],
+      required: true,
       trim: true,
     },
-    lastName: {
-      type: String,
-      required: [true, "Last name is required"],
-      trim: true,
-    },
-    medicalUniversity: {
-      type: String,
-      required: [true, "Medical university is required"],
-    },
-    specialization: {
-      type: String,
-      required: [true, "Specialization is required"],
-    },
-    phoneNumber: {
-      type: String,
-      required: [true, "Phone number is required"],
-      match: [/^[0-9]{10,15}$/, "Please enter a valid phone number"],
-    },
+
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: true,
       unique: true,
       lowercase: true,
-      match: [/.+\@.+\..+/, "Please enter a valid email address"],
     },
+
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters long"],
-      select: false, // hide password by default
+      required: function () {
+        return !this.googleId;
+      },
     },
-    city: {
+
+    googleId: {
       type: String,
-      required: [true, "City is required"],
-    },
-    pmcNumber: {
-      type: String,
-      required: [true, "PMC number is required"],
       unique: true,
+      sparse: true,
     },
-    cnicNumber: {
+
+    role: {
       type: String,
-   
+      default: "doctor",
     },
-    pmcCertificate: {
-      type: String, // URL or file path
-      required: [true, "PMC certificate upload is required"],
+
+    isBanned: {
+      type: Boolean,
+      default: false,
     },
-    gender: {
-      type: String,
-      enum: ["male", "female", "other"],
-      required: [true, "Gender is required"],
+    isProfileComplete: {
+      type: Boolean,
+      default: false,
     },
-    averageRating: {
-      type: Number,
-      default: 0
+
+    isActive: {
+      type: Boolean,
+      default: true,
     },
-    totalReviews: {
-      type: Number,
-      default: 0
-    },
-    
-    isBanned : {
-      type:Boolean,
-      default : false,
-      
-    },
-    isVerified:{
-      type:Boolean ,
-      default : false
-    },
-    role:{
-      type:String,
-      default: 'doctor'
-    },
- 
   },
   { timestamps: true }
 );

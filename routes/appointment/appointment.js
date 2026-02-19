@@ -1,23 +1,23 @@
 import   {Router} from 'express'
-import authPatient from '../../middleware/patientAuthMiddleware.js';
-import { createAppointment} from '../../controllers/appointment/appointment.js';
+import { createAppointment, verifyAppointment} from '../../controllers/appointment/appointment.js';
 import { generateVideoCallToken } from '../../controllers/appointment/videoCall.js';
-import authDoctor from '../../middleware/doctorAuthMiddleware.js';
+import { auth } from '../../middleware/auth.js';
 const router = Router()
 
 
 
 
-router.post("/create" , authPatient , createAppointment)
+router.post("/create" , auth(["patient"]) , createAppointment)
+router.get("/verify" , auth(["patient"]) , verifyAppointment)
 router.get(
   "/appointments/:appointmentId/video-token",
-  authDoctor,
+
   generateVideoCallToken
 );
 
 router.get(
   "/appointments/:appointmentId/video-token",
-  authPatient,
+
   generateVideoCallToken
 );
 

@@ -14,8 +14,9 @@ import cors from 'cors'
 
 
 const allowedOrigins = [
-  process.env.HEALTHBIRDGE_DOMAIN,
-  process.env.ADMIN_HEALTHBRIDGE_DOMAIN
+"http://localhost:5173",
+"http://localhost:5174",
+
 ];
 
 app.use(

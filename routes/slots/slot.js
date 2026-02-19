@@ -5,7 +5,7 @@ import { bookSlot, getAvailableSlots } from '../../controllers/slots/slots.js';
 const route  = Router();
 
 
-route.get("/get" , authPatient, getAvailableSlots)
+route.get("/get" , getAvailableSlots)
 route.post("/book" , authPatient, bookSlot)
 
 

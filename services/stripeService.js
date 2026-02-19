@@ -18,7 +18,7 @@ export const createCheckoutSession = async ({stripe ,  doctorName, amount, appoi
       },
     ],
     mode: "payment",
-    success_url:STRIPE_SUCCESS_URL,
+    success_url:`${STRIPE_SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url:STRIPE_CANCEL_URL,
   });
 
