@@ -1,4 +1,4 @@
-import { PORT } from './config/config.js';
+import { ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, PORT } from './config/config.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
@@ -14,8 +14,8 @@ import cors from 'cors'
 
 
 const allowedOrigins = [
-"http://localhost:5173",
-"http://localhost:5174",
+HEALTHBIRDGE_DOMAIN,
+ADMIN_HEALTHBRIDGE_DOMAIN,
 
 ];
 
