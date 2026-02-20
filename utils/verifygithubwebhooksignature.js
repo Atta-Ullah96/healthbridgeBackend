@@ -6,12 +6,9 @@ import { GITHUB_WEBHOOK_SECRET_KEY } from '../config/config.js'
 
 export const  CalculatedGithubWebhookSignature  = (req) =>{
    const signature = req.headers['x-hub-signature-256']; // GitHub signature
-  const secret = GITHUB_WEBHOOK_SECRET_KEY;            // your secret
   const payloadRaw = JSON.stringify(req.body);          // raw JSON payload
 
-  console.log(secret);
-  
-  const hmac = crypto.createHmac('sha256', secret);
+  const hmac = crypto.createHmac('sha256', GITHUB_WEBHOOK_SECRET_KEY);
   hmac.update(payloadRaw);
   const digest = `sha256=${hmac.digest('hex')}`;
 
