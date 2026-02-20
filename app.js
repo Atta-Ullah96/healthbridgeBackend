@@ -1,4 +1,5 @@
 import { ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, PORT } from './config/config.js';
+import { CalculatedGithubWebhookSignature } from './utils/verifygithubwebhooksignature.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
@@ -40,9 +41,61 @@ app.use(
 
 app.post("/api/v1/appointment/verify" , express.raw({ type: "application/json" }),  stripeWebhook)
 app.post("/api/v1/lab/verify" , express.raw({ type: "application/json" }),  labStripeWebhook)
+app.post(
+  '/github/webhook',
+  express.raw({ type: 'application/json' }), // raw body for signature verification
+  (req, res) => {
+    // Step 1: Verify signature
+    if (!CalculatedGithubWebhookSignature(req)) {
+      console.log('⚠️ Signature verification failed');
+      return res.status(401).send('Invalid signature');
+    }
+
+    // Step 2: Parse payload
+    const payload = JSON.parse(req.body.toString());
+    const repo = payload.repository.full_name;
+    const branch = payload.ref; // e.g., "refs/heads/main"
+    const commit = payload.head_commit?.id || 'unknown';
+
+    console.log(`✅ Webhook received for ${repo} on ${branch}, commit ${commit}`);
+
+    // Step 3: Respond immediately to GitHub
+    res.status(200).send('Webhook received');
+
+    // Step 4: Check branch rules (only deploy main branch)
+    if (branch !== 'refs/heads/main') {
+      console.log('⏭ Branch is not main, skipping deployment');
+      return;
+    }
+
+    // Step 5: Spawn deployment script
+    const deploy = spawn('bash', ['/home/ubuntu/backend-deploy.sh']);
+
+    deploy.stdout.on('data', (data) => {
+      console.log(`stdout: ${data.toString()}`);
+    });
+
+    deploy.stderr.on('data', (data) => {
+      console.error(`stderr: ${data.toString()}`);
+    });
+
+    deploy.on('close', (code) => {
+      console.log(`Deployment finished with code ${code}`);
+      // ✅ Here you can call GitHub Commit Status API or send email
+    });
+
+    deploy.on('error', (err) => {
+      console.error('Failed to start deployment:', err);
+      // ⚠️ Send email notification here
+    });
+  }
+);
+
 
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
+
+
 
 
 app.use(cookieParser(process.env.SIGNED_COOKIE_SECRET_KEY ))

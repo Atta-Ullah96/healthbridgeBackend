@@ -15,3 +15,4 @@ export const AWS_S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME
 export const AGORA_APP_ID = process.env.AGORA_APP_ID
 export const AGORA_APP_CERTIFICATE  = process.env.AGORA_APP_CERTIFICATE 
 export const HEALTHBIRDGE_DOMAIN = process.env.HEALTHBIRDGE_DOMAIN
+export const GITHUB_WEBHOOK_SECRET_KEY = process.env.GITHUB_WEBHOOK_SECRET_KEY
