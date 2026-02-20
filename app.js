@@ -11,7 +11,7 @@ import crypto from 'crypto';
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
 
-
+  
 
 
 const allowedOrigins = [
