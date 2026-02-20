@@ -46,7 +46,8 @@ app.post(
   express.raw({ type: 'application/json' }), // raw body for signature verification
   (req, res) => {
     // Step 1: Verify signature
-    if (!CalculatedGithubWebhookSignature(req)) {
+    const calculatedWebhook = CalculatedGithubWebhookSignature(req)
+    if (!calculatedWebhook) {
       console.log('⚠️ Signature verification failed');
       return res.status(401).send('Invalid signature');
     }
