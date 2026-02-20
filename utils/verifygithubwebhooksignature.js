@@ -9,6 +9,8 @@ export const  CalculatedGithubWebhookSignature  = (req) =>{
   const secret = GITHUB_WEBHOOK_SECRET_KEY;            // your secret
   const payloadRaw = JSON.stringify(req.body);          // raw JSON payload
 
+  console.log(secret);
+  
   const hmac = crypto.createHmac('sha256', secret);
   hmac.update(payloadRaw);
   const digest = `sha256=${hmac.digest('hex')}`;
