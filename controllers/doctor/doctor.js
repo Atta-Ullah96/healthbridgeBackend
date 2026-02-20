@@ -191,9 +191,7 @@ export const loginWithGoogle = asyncHandler(async (req, res, next) => {
     const { sub, email, name } = await verifyGoogleToken(token);
 
     const existingUser = await Doctor.findOne({ email });
-    if(existingUser.isBanned === true){
-        return res.status(401).json({success:false  , message : "your account has been blocked please contact to the admin"})
-    }
+    
 
     if (existingUser) {
         let session = await Session.findOne({ userId: existingUser._id });
