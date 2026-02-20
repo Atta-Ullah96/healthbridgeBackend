@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import { stripeWebhook } from './controllers/appointment/appointment.js';
 import { labStripeWebhook } from './controllers/laboratory/laboratory.js';
 import cors from 'cors'
+import crypto from 'crypto';
 // import  cron from 'node-cron'
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
@@ -46,8 +47,10 @@ app.post(
   express.raw({ type: 'application/json' }), // raw body for signature verification
   (req, res) => { 
     
-    const calculatedWebhook = CalculatedGithubWebhookSignature(req)
-    if (!calculatedWebhook) {
+   const givenSignature = req.headers['x-hub-signature-256']; // GitHub signature
+    
+    const calculatedWebhookSignature = 'sha256='+crypto.createHmac('sha256' , "attaullah@1122",JSON.stringify(req.body)).digest("hex")
+    if (givenSignature !== calculatedWebhookSignature) {
       console.log('⚠️ Signature verification failed');
       return res.status(401).send('Invalid signature');
     }
