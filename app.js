@@ -44,7 +44,7 @@ app.post("/api/v1/lab/verify" , express.raw({ type: "application/json" }),  labS
 app.post(
   '/github/webhook',  
   express.raw({ type: 'application/json' }), // raw body for signature verification
-  (req, res) => {
+  (req, res) => { 
     // Step 1: Verify signature
     const calculatedWebhook = CalculatedGithubWebhookSignature(req)
     if (!calculatedWebhook) {
