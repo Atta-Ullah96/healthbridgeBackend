@@ -12,6 +12,6 @@ export const  CalculatedGithubWebhookSignature  = (req) =>{
   hmac.update(payloadRaw);
   const digest = `sha256=${hmac.digest('hex')}`;
 
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
-
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest)); 
+ 
 } 
