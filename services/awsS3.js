@@ -6,7 +6,7 @@ export const s3Client = new S3Client();
 
 
 export const createUploadFileToAws = async({key , contentType})=>{
-
+ 
     const command = new PutObjectCommand({
       Bucket: AWS_S3_BUCKET_NAME,
       
