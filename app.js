@@ -42,7 +42,7 @@ app.use(
 app.post("/api/v1/appointment/verify" , express.raw({ type: "application/json" }),  stripeWebhook)
 app.post("/api/v1/lab/verify" , express.raw({ type: "application/json" }),  labStripeWebhook)
 app.post(
-  '/github/webhook',
+  '/github/webhook', 
   express.raw({ type: 'application/json' }), // raw body for signature verification
   (req, res) => {
     // Step 1: Verify signature
