@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { GITHUB_WEBHOOK_SECRET_KEY } from '../config/config'
+import { GITHUB_WEBHOOK_SECRET_KEY } from '../config/config.js'
 
 
 
