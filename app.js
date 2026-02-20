@@ -1,5 +1,4 @@
 import { ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, PORT } from './config/config.js';
-import { CalculatedGithubWebhookSignature } from './utils/verifygithubwebhooksignature.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
