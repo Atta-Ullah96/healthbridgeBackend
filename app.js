@@ -60,7 +60,6 @@ app.post(
     const hmac = crypto.createHmac('sha256', "attaullah@1122");
     const calculatedSignature = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
 
-    // 2. Use a timing-safe comparison to prevent timing attacks
     if (givenSignature !== calculatedSignature
     ) {
       console.log('⚠️ Signature verification failed');
