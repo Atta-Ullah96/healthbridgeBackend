@@ -5,8 +5,9 @@ const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  console.error("Error:", err);
-
+  if (res.headersSent) {
+    return next(err); // Pass to default Express error handler
+  }
   // Default to 500 if no statusCode set
   const statusCode = error.statusCode || 500;
 
