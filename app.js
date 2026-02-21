@@ -69,7 +69,7 @@ app.post(
     res.status(200).json({message : "ok"});
 
     // Step 5: Spawn deployment script
-    const deploy = spawn('bash', ['/home/ubuntu/backend-deploy.sh']);
+    const deploy = spawn('bash', ['/home/ubuntu/deploy-backend.sh']);
 
     deploy.stdout.on('data', (data) => {
       console.log(`stdout: ${data}`);
