@@ -69,21 +69,12 @@ app.post(
 
     res.status(200).json({message : "ok"});
 
-    // Step 2: Parse payload
-    const payload = JSON.parse(req.body.toString());
-    const repo = payload.repository.full_name;
-    const branch = payload.ref; // e.g., "refs/heads/main"
-    const commit = payload.head_commit?.id || 'unknown';
-
+ 
     console.log(`✅ Webhook received for ${repo} on ${branch}, commit ${commit}`);
 
     // Step 3: Respond immediately to GitHub
 
-    // Step 4: Check branch rules (only deploy main branch)
-    if (branch !== 'refs/heads/main') {
-      console.log('⏭ Branch is not main, skipping deployment');
-      return;
-    }
+   
 
     // Step 5: Spawn deployment script
     const deploy = spawn('bash', ['/home/ubuntu/backend-deploy.sh']);
