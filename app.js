@@ -58,7 +58,7 @@ app.post(
       res.status(403).json({message :"invalidss signature"})
     }
     const hmac = crypto.createHmac('sha256', "attaullah@1122");
-    const calculatedSignature = 'sha256=' + hmac.update(req.body).digest('hex');
+    const calculatedSignature = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
 
     // 2. Use a timing-safe comparison to prevent timing attacks
     if (givenSignature !== calculatedSignature
