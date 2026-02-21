@@ -11,12 +11,12 @@ import crypto from 'crypto';
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
 
-  
+
 
 
 const allowedOrigins = [
-HEALTHBIRDGE_DOMAIN,
-ADMIN_HEALTHBRIDGE_DOMAIN,
+  HEALTHBIRDGE_DOMAIN,
+  ADMIN_HEALTHBRIDGE_DOMAIN,
 
 ];
 
@@ -39,21 +39,30 @@ app.use(
 
 //stripe webhook endipoint 
 
-app.post("/api/v1/appointment/verify" , express.raw({ type: "application/json" }),  stripeWebhook)
-app.post("/api/v1/lab/verify" , express.raw({ type: "application/json" }),  labStripeWebhook)
+app.post("/api/v1/appointment/verify", express.raw({ type: "application/json" }), stripeWebhook)
+app.post("/api/v1/lab/verify", express.raw({ type: "application/json" }), labStripeWebhook)
 app.post(
-  '/github/webhook',  
+  '/github/webhook',
   express.raw({ type: 'application/json' }), // raw body for signature verification
-  (req, res) => { 
-    
-   const givenSignature = req.headers['x-hub-signature-256']; // GitHub signature
-   return res.status(401).send(givenSignature);
-     
-    const calculatedWebhookSignature = 'sha256='+crypto.createHmac('sha256' , "attaullah@1122",JSON.stringify(req.body)).digest("hex")
-    if (givenSignature !== calculatedWebhookSignature) {
+  (req, res) => {
+
+
+  const givenSignature = req.headers['x-hub-signature-256'];
+    const secret = "attaullah@1122";
+
+    // 1. Calculate signature directly from the raw Buffer (req.body)
+    const hmac = crypto.createHmac('sha256', secret);
+    const calculatedSignature = 'sha256=' + hmac.update(req.body).digest('hex');
+
+    // 2. Use a timing-safe comparison to prevent timing attacks
+    if (!givenSignature || !crypto.timingSafeEqual(
+      Buffer.from(givenSignature), 
+      Buffer.from(calculatedSignature)
+    )) {
       console.log('⚠️ Signature verification failed');
       return res.status(401).send('Invalid signature');
     }
+
 
     // Step 2: Parse payload
     const payload = JSON.parse(req.body.toString());
@@ -97,12 +106,12 @@ app.post(
 
 
 app.use(express.json())
-app.use(express.urlencoded({extended:true}))
+app.use(express.urlencoded({ extended: true }))
 
 
 
 
-app.use(cookieParser(process.env.SIGNED_COOKIE_SECRET_KEY ))
+app.use(cookieParser(process.env.SIGNED_COOKIE_SECRET_KEY))
 
 // **************************** database connection start ************* // 
 import connectDB from './config/db.js';
@@ -117,30 +126,30 @@ connectDB()
 
 // testing api 
 
-app.get("/" , (req ,res) =>{
-    res.end("tesing api")
+app.get("/", (req, res) => {
+  res.end("tesing api")
 })
 
 // **************************** doctor api's start ************* // 
 import doctorRoute from './routes/doctor/doctor.js';
-app.use("/api/v1/doctor" , doctorRoute)
+app.use("/api/v1/doctor", doctorRoute)
 // **************************** doctor apis end ************* // 
 
 // **************************** patient routes start ************* // 
 import patientRoute from './routes/patient/patient.js';
 
-app.use("/api/v1/patient" , patientRoute)
+app.use("/api/v1/patient", patientRoute)
 // **************************** Patient routes end ************* // 
 
 // **************************** slots routes start ************* // 
 import slot from './routes/slots/slot.js';
 
-app.use("/api/v1/slot" , slot)
+app.use("/api/v1/slot", slot)
 // **************************** slots routes end ************* // 
 // **************************** appointments routes start ************* // 
 import appointment from './routes/appointment/appointment.js'
 
-app.use("/api/v1/appointment" , appointment)
+app.use("/api/v1/appointment", appointment)
 // **************************** appointments routes end ************* // 
 
 
@@ -148,13 +157,13 @@ app.use("/api/v1/appointment" , appointment)
 // **************************** review routes start ************* // 
 import review from './routes/review/review.js'
 
-app.use("/api/v1/review" , review)
+app.use("/api/v1/review", review)
 // **************************** review routes end ************* // 
 
 // **************************** laboratory routes start ************* // 
 
 import Laboratory from './routes/laboratory/laboratory.js';
-app.use("/api/v1/laboratory" , Laboratory)
+app.use("/api/v1/laboratory", Laboratory)
 
 // **************************** laboratory routes end ************* //
 
@@ -164,13 +173,13 @@ import { zodErrorHandler } from './middleware/zodErrorMiddleware.js';
 
 
 
-app.use("/api/v1/admin" , admin)
+app.use("/api/v1/admin", admin)
 // **************************** admin routes end ************* // 
 
 
 app.use(zodErrorHandler);
 app.use(errorHandler)
 
-app.listen(PORT , () =>{
-    console.log("server is running on port number 4000")
+app.listen(PORT, () => {
+  console.log("server is running on port number 4000")
 })
