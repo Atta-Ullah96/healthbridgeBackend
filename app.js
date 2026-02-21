@@ -48,20 +48,20 @@ app.post(
 
 
   const givenSignature = req.headers['x-hub-signature-256'];
-    const secret = "attaullah@1122";
-
-    const hmac = crypto.createHmac('sha256', secret);
-    const calculatedSignature = 'sha256=' + hmac.update(req.body).digest('hex');
+    if(!givenSignature){
+      res.status(403).json({message :"invalidss signature"})
+    }
+    const hmac = crypto.createHmac('sha256', "attaullah@1122");
+    const calculatedSignature = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
 
     // 2. Use a timing-safe comparison to prevent timing attacks
-    if (!givenSignature || !crypto.timingSafeEqual(
-      Buffer.from(givenSignature), 
-      Buffer.from(calculatedSignature)
-    )) {
+    if (givenSignature !== calculatedSignature
+    ) {
       console.log('⚠️ Signature verification failed');
       return res.status(401).send('Invalid signature');
     }
 
+    res.status(200).json({message : "ok"});
 
     // Step 2: Parse payload
     const payload = JSON.parse(req.body.toString());
@@ -72,7 +72,6 @@ app.post(
     console.log(`✅ Webhook received for ${repo} on ${branch}, commit ${commit}`);
 
     // Step 3: Respond immediately to GitHub
-    res.status(200).send('Webhook received');
 
     // Step 4: Check branch rules (only deploy main branch)
     if (branch !== 'refs/heads/main') {
