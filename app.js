@@ -41,6 +41,13 @@ app.use(
 
 app.post("/api/v1/appointment/verify", express.raw({ type: "application/json" }), stripeWebhook)
 app.post("/api/v1/lab/verify", express.raw({ type: "application/json" }), labStripeWebhook)
+
+
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+
 app.post(
   '/github/webhook',
   (req, res) => {
@@ -100,13 +107,6 @@ app.post(
     });
   }
 );
-
-
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-
-
-
 
 app.use(cookieParser(process.env.SIGNED_COOKIE_SECRET_KEY))
 
