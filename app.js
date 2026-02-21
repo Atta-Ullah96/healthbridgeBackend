@@ -50,7 +50,6 @@ app.post(
   const givenSignature = req.headers['x-hub-signature-256'];
     const secret = "attaullah@1122";
 
-    // 1. Calculate signature directly from the raw Buffer (req.body)
     const hmac = crypto.createHmac('sha256', secret);
     const calculatedSignature = 'sha256=' + hmac.update(req.body).digest('hex');
 
