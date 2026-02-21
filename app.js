@@ -81,7 +81,7 @@ app.post(
 
     deploy.on('close', (code) => {
       console.log(`Deployment finished with code ${code}`);
-      // ✅ Here you can call GitHub Commit Status API or send email
+      // ✅ Here you can call GitHub Commit Status API or send emails
     });
 
     deploy.on('error', (err) => {
