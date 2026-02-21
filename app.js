@@ -55,7 +55,7 @@ app.post(
 
   const givenSignature = req.headers['x-hub-signature-256'];
     if(!givenSignature){
-      res.status(403).json({error :"invalidss signature"})
+     return  res.status(403).json({error :"invalidss signature"})
     }
     const hmac = crypto.createHmac('sha256', "attaullah@1122");
     const calculatedSignature = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
@@ -69,21 +69,15 @@ app.post(
 
     res.status(200).json({message : "ok"});
 
- 
-
-    // Step 3: Respond immediately to GitHub
-
-   
-
     // Step 5: Spawn deployment script
     const deploy = spawn('bash', ['/home/ubuntu/backend-deploy.sh']);
 
     deploy.stdout.on('data', (data) => {
-      console.log(`stdout: ${data.toString()}`);
+      console.log(`stdout: ${data}`);
     });
 
     deploy.stderr.on('data', (data) => {
-      console.error(`stderr: ${data.toString()}`);
+      console.error(`stderr: ${data}`);
     });
 
     deploy.on('close', (code) => {
