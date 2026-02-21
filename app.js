@@ -47,7 +47,8 @@ app.post(
   (req, res) => { 
     
    const givenSignature = req.headers['x-hub-signature-256']; // GitHub signature
-    
+   return res.status(401).send(givenSignature);
+     
     const calculatedWebhookSignature = 'sha256='+crypto.createHmac('sha256' , "attaullah@1122",JSON.stringify(req.body)).digest("hex")
     if (givenSignature !== calculatedWebhookSignature) {
       console.log('⚠️ Signature verification failed');
