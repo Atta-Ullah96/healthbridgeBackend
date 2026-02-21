@@ -1,4 +1,4 @@
-import { ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, PORT } from './config/config.js';
+import { ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, PORT, SIGNED_COOKIE_SECRET_KEY } from './config/config.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
@@ -55,7 +55,7 @@ app.post(
 
   const givenSignature = req.headers['x-hub-signature-256'];
     if(!givenSignature){
-      res.status(403).json({message :"invalidss signature"})
+      res.status(403).json({error :"invalidss signature"})
     }
     const hmac = crypto.createHmac('sha256', "attaullah@1122");
     const calculatedSignature = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
@@ -70,7 +70,6 @@ app.post(
     res.status(200).json({message : "ok"});
 
  
-    console.log(`✅ Webhook received for ${repo} on ${branch}, commit ${commit}`);
 
     // Step 3: Respond immediately to GitHub
 
@@ -99,7 +98,7 @@ app.post(
   }
 );
 
-app.use(cookieParser(process.env.SIGNED_COOKIE_SECRET_KEY))
+app.use(cookieParser(SIGNED_COOKIE_SECRET_KEY))
 
 // **************************** database connection start ************* // 
 import connectDB from './config/db.js';
@@ -115,7 +114,7 @@ connectDB()
 // testing api 
 
 app.get("/", (req, res) => {
-  res.end("tesing api")
+  res.end("tesing api from backen")
 })
 
 // **************************** doctor api's start ************* // 
