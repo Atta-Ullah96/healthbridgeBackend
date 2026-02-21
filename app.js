@@ -7,6 +7,7 @@ import { stripeWebhook } from './controllers/appointment/appointment.js';
 import { labStripeWebhook } from './controllers/laboratory/laboratory.js';
 import cors from 'cors'
 import crypto from 'crypto';
+import { spawn } from 'child_process';
 // import  cron from 'node-cron'
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
