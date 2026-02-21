@@ -43,7 +43,6 @@ app.post("/api/v1/appointment/verify", express.raw({ type: "application/json" })
 app.post("/api/v1/lab/verify", express.raw({ type: "application/json" }), labStripeWebhook)
 app.post(
   '/github/webhook',
-  express.raw({ type: 'application/json' }), // raw body for signature verification
   (req, res) => {
 
 
