@@ -1,4 +1,4 @@
-import {  ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, SIGNED_COOKIE_SECRET_KEY,  } from './config/config.js';
+import { ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, SIGNED_COOKIE_SECRET_KEY, } from './config/config.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
@@ -15,16 +15,15 @@ import { spawn } from 'child_process';
 
 
 
-console.log(HEALTHBIRDGE_DOMAIN);
-console.log(ADMIN_HEALTHBRIDGE_DOMAIN);
+
 
 const allowedOrigins = [
   HEALTHBIRDGE_DOMAIN,
-
+  ADMIN_HEALTHBRIDGE_DOMAIN
 ];
 
 const corsOptions = {
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     if (!origin) return callback(null, true); // allow Postman, mobile apps
 
     if (allowedOrigins.includes(origin)) {
@@ -57,9 +56,9 @@ app.post(
   (req, res) => {
 
 
-  const givenSignature = req.headers['x-hub-signature-256'];
-    if(!givenSignature){
-     return  res.status(403).json({error :"invalidss signature"})
+    const givenSignature = req.headers['x-hub-signature-256'];
+    if (!givenSignature) {
+      return res.status(403).json({ error: "invalidss signature" })
     }
     const hmac = crypto.createHmac('sha256', "attaullah@1122");
     const calculatedSignature = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
@@ -70,7 +69,7 @@ app.post(
       return res.status(401).send('Invalid signature');
     }
 
-    res.status(200).json({message : "ok"});
+    res.status(200).json({ message: "ok" });
 
     const deploy = spawn('bash', ['/home/ubuntu/deploy-backend.sh']);
 
