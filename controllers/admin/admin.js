@@ -23,7 +23,7 @@ export const adminRegister = async (req, res) => {
 
   const existsUser = Admin.findOne({ email })
   if (existsUser) {
-    return res.status(401).json({ message: "Email already taken" })
+    return res.status(401).json({ message: "Email already takens" })
   }
   await Admin.create({
     name,

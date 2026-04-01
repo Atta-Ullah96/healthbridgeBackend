@@ -311,6 +311,7 @@ export const initiateUpload = asyncHandler(async (req, res, next) => {
       signedUrl,
 
     });
+    
   } catch (error) {
     next(error);
   }
