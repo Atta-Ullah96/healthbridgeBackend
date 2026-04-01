@@ -1,4 +1,4 @@
-import {  SIGNED_COOKIE_SECRET_KEY, TESTING_URL_1, TESTING_URL_2 } from './config/config.js';
+import {  ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, SIGNED_COOKIE_SECRET_KEY,  } from './config/config.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
@@ -16,8 +16,8 @@ import { spawn } from 'child_process';
 
 
 const allowedOrigins = [
-  TESTING_URL_1,
-  TESTING_URL_2,
+  HEALTHBIRDGE_DOMAIN,
+  ADMIN_HEALTHBRIDGE_DOMAIN,
 
 ];
 
