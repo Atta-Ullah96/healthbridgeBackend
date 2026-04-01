@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Admin } from "../../models/admin/admin.js";
 import { LabPayout } from "../../models/admin/labpayout.js";
 import { Appointment } from "../../models/appointements/appointements.js";
@@ -6,15 +7,29 @@ import { Laboratory } from "../../models/laboartory/labartory.js";
 import { Patient } from "../../models/patient/patient.js";
 import { Review } from "../../models/review/review.js";
 import Session from "../../models/session.js";
+import { createGetFileFromAws, deleteFromS3 } from "../../services/awsS3.js";
+import { DoctorBasicInfo } from "../../models/doctor/doctorBasicInfo.js";
+import { UploadFile } from "../../models/doctor/upload.js";
+import { ProfessionalDetails } from "../../models/doctor/professional.js";
+import { ProfileSummary } from "../../models/doctor/profileSummary.js";
+import { DoctorAvailability } from "../../models/doctor/availavbility.js";
+import { ConsultationSetup } from "../../models/doctor/consultationSetup.js";
+import { Location } from "../../models/doctor/location.js";
 
 // ************************** Admin Auth api's start here ****************************** //
 
 export const adminRegister = async (req, res) => {
+  const { name, email, password, role } = req.body;
 
+  const existsUser = Admin.findOne({ email })
+  if (existsUser) {
+    return res.status(401).json({ message: "Email already taken" })
+  }
   await Admin.create({
-    name: "Super Admin",
-    email: "admin@healthbridge.com",
-    password: "admin123"
+    name,
+    email,
+    password,
+    role
   });
 
   res.status(201).json({ message: "admin regsiterd successfully" })
@@ -64,10 +79,6 @@ export const adminLogout = async (req, res) => {
 };
 
 // ************************** Admin Auth api's end here ****************************** //
-
-
-
-
 
 
 // ************************** Admin Dashboard Overview controller start here ****************************** //
@@ -235,11 +246,44 @@ export const getAllDoctors = async (req, res) => {
       filter.isBanned = true;
     }
 
-    const doctors = await Doctor.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const doctors = await Doctor.aggregate([
+      { $match: filter },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+
+      // 🔗 Join BasicInfo
+      {
+        $lookup: {
+          from: 'doctorbasicinfos',        // collection name
+          localField: '_id',         // Doctor _id
+          foreignField: 'doctorId',  // field in BasicInfo
+          as: 'basicInfo'
+        }
+      },
+      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
+
+      // 🔗 Join ProfileSummary
+      {
+        $lookup: {
+          from: 'professionaldetails',
+          localField: '_id',
+          foreignField: 'doctorId',
+          as: 'professionaldetails'
+        }
+      },
+      { $unwind: { path: '$professionaldetails', preserveNullAndEmptyArrays: true } },
+
+      // 🔗 Join Documents
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: '_id',
+          foreignField: 'doctorId',
+          as: 'files'
+        }
+      }
+    ]);
 
     // 📊 Total Patients per doctor
     const doctorIds = doctors.map(d => d._id);
@@ -254,30 +298,42 @@ export const getAllDoctors = async (req, res) => {
       patientMap[p._id.toString()] = p.total;
     });
 
-    // 🎯 Final UI-ready shape
-    const formattedDoctors = doctors.map(doc => ({
-      id: doc._id,
-      name: `${doc.firstName} ${doc.lastName}`,
-      email: doc.email,
-      phone: doc.phoneNumber,
-      specialization: doc.specialization,
-      experience: doc.experience || 0,
-      joinedDate: doc.createdAt,
-      lastActive: doc.lastLogin || doc.updatedAt,
-      consultationFee: doc.consultationFee || 0,
-      totalPatients: patientMap[doc._id.toString()] || 0,
-      status: doc.isBanned
-        ? "banned"
-        : doc.isVerified
-          ? "verified"
-          : "pending",
-      isVerified: doc.isVerified,
-      isBanned: doc.isBanned
+    // after fetching doctors and doing $lookup to populate files
+    const formattedDoctors = await Promise.all(
+      doctors.map(async (doc) => {
+        // flatten files array (because $lookup often returns nested arrays)
+        const files = doc.files.flat();
 
-    }));
+
+        // find the profile photo
+        const profileFile = files.find(file => file.purpose === "profile_photo");
+
+        const profileImageUrl = profileFile ? await createGetFileFromAws({ key: profileFile.s3Key }) : null;
+
+        return {
+          id: doc._id,
+          name: doc.name,
+          email: doc.email,
+          phone: doc.basicInfo.phone,
+          specialization: doc.professionaldetails.specialization,
+          experience: doc.professionaldetails.yearsOfExperience || 0,
+          joinedDate: doc.createdAt,
+          lastActive: doc.lastLogin || doc.updatedAt,
+          totalPatients: patientMap[doc._id.toString()] || 0,
+          status: doc.isBanned
+            ? "banned"
+            : doc.isVerified
+              ? "verified"
+              : "pending",
+
+          profileImage: profileImageUrl,
+          isVerified: doc.isVerified,
+          isBanned: doc.isBanned
+        };
+      })
+    );
 
     const totalDoctors = await Doctor.countDocuments(filter);
-
     res.status(200).json({
       success: true,
       page,
@@ -285,6 +341,9 @@ export const getAllDoctors = async (req, res) => {
       totalPages: Math.ceil(totalDoctors / limit),
       doctors: formattedDoctors,
     });
+
+
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch doctors" });
@@ -293,10 +352,124 @@ export const getAllDoctors = async (req, res) => {
 
 
 
+export const getDoctorById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Doctor ID",
+      });
+    }
+
+    const doctor = await Doctor.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(id),
+        },
+      },
+
+      // Lookup Files
+      {
+        $lookup: {
+          from: "uploads",
+          localField: "_id",
+          foreignField: "doctorId",
+          as: "files",
+        },
+      },
+
+      {
+        $lookup: {
+          from: "doctorbasicinfos",
+          localField: "_id",
+          foreignField: "doctorId",
+          as: "basicInfo"
+        }
+      }, {
+        $lookup: {
+          from: "professionaldetails",
+          localField: "_id",
+          foreignField: "doctorId",
+          as: "professionalDetails"
+        }
+      }
+
+    ]);
+
+    const doctorData = doctor[0];
+
+    const profileFile = doctorData.files.find(
+      (file) => file.purpose === "profile_photo"
+    );
+
+
+    // Extract documents
+    const documents = doctorData.files.filter(
+      (file) =>
+        file.purpose === "medical_license" ||
+        file.purpose === "degree_certificate"
+    );
+
+
+    // Generate signed URL for profile image
+    let profileImageUrl = null;
+
+    if (profileFile) {
+      profileImageUrl = await createGetFileFromAws({ key: profileFile?.s3Key });
+    }
+
+    // Generate signed URLs for documents
+    const formattedDocuments = await Promise.all(
+      documents.map(async (doc) => {
+        const signedUrl = await createGetFileFromAws({ key: doc?.s3Key });
+
+        return {
+          id: doc._id,
+          name: doc.fileName,
+          purpose: doc.purpose,
+          url: signedUrl,
+        };
+      })
+    );
+
+    const formattedDoctor = {
+
+      firstName: doctorData.basicInfo[0]?.firstName,
+      lastName: doctorData.basicInfo[0]?.lastName,
+      email: doctorData.email,
+      phone: doctorData.basicInfo[0]?.phone,
+      gender: doctorData.basicInfo[0]?.gender,
+
+      specialization: doctorData.professionalDetails[0]?.specialization,
+      qualification: doctorData.professionalDetails[0]?.qualification,
+      pmcnumber: doctorData.professionalDetails[0]?.pmcNumber,
+      experience: doctorData.professionalDetails[0]?.yearsOfExperience,
+
+      profileImage: profileImageUrl,
+      documents: formattedDocuments,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: formattedDoctor,
+    });
+
+
+  } catch (error) {
+    console.error("Get Doctor By ID Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
 
 
 // verfiy doctor 
-
 
 export const verifyDoctor = async (req, res) => {
   try {
@@ -378,6 +551,67 @@ export const unbanDoctor = async (req, res) => {
 };
 
 
+// permently delete doctor 
+export const deleteDoctor = async (req, res) => {
+
+
+  try {
+    const { doctorId } = req.params;
+
+
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Doctor ID",
+      });
+    }
+
+    // 🔹 Find all files first (to delete from S3 later)
+    const files = await UploadFile.find({ doctorId: doctorId });
+
+    // 🔹 Delete all related data
+    await DoctorBasicInfo.deleteOne({ doctorId });
+    await ProfessionalDetails.deleteOne({ doctorId });
+    await ProfileSummary.deleteOne({ doctorId });
+    await DoctorAvailability.deleteMany({ doctorId });
+    await ConsultationSetup.deleteOne({ doctorId });
+    await Location.deleteOne({ doctorId });
+    await UploadFile.deleteMany({ doctorId });
+
+    // 🔹 Delete user (doctor account)
+    const deletedUser = await Doctor.findByIdAndDelete({ _id: doctorId });
+
+    if (!deletedUser) {
+      throw new Error("Doctor not found");
+    }
+
+
+    // 🔥 Delete S3 files AFTER DB success
+    await Promise.all(
+      files.map(async (file) => {
+        await deleteFromS3({ key: file?.s3Key });
+      })
+
+    );
+
+
+
+    return res.status(200).json({
+      success: true,
+      message: "Doctor and all related data deleted permanently",
+    });
+
+  } catch (error) {
+
+    console.error("Delete Doctor Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete doctor",
+    });
+  }
+};
+
 
 // ************************** doctors Admin  api's end from  here ****************************** //
 
@@ -400,7 +634,7 @@ export const getAllPatientsPaginated = async (req, res) => {
     }
 
     const patients = await Patient.find(filter)
-      .select("fullName email phone createdAt")
+      .select("name email phone createdAt")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -507,7 +741,7 @@ export const getAllAppointmentsAdmin = async (req, res) => {
 
     let appointments = await Appointment.find(filter)
       .populate("doctorId", "firstName lastName")
-      .populate("patientId", "firstName lastName")
+      .populate("patientId", "name")
       .populate("slotId", "date startTime endTime")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -541,6 +775,53 @@ export const getAllAppointmentsAdmin = async (req, res) => {
 };
 
 
+export const confirmAppointmentByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    appointment.status = "confirmed";
+    await appointment.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment confi by admin"
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Failed to cancel appointment" });
+  }
+};
+
+
+export const completeAppointmentByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    appointment.status = "completed";
+    await appointment.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment completed by admin"
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Failed to cancel appointment" });
+  }
+};
+
+
+
 export const cancelAppointmentByAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -569,7 +850,7 @@ export const cancelAppointmentByAdmin = async (req, res) => {
 // ************************** [labortory] Admin  api's start from  here ****************************** //
 export const createLaboratory = async (req, res) => {
   try {
-    const { name, email, phone, password, location } = req.body;
+    const { name, email, password } = req.body;
 
     const exists = await Laboratory.findOne({ email });
     if (exists) {
@@ -579,15 +860,13 @@ export const createLaboratory = async (req, res) => {
     const lab = await Laboratory.create({
       name,
       email,
-      phone,
       password,
-      location
+
     });
 
     res.status(201).json({
       success: true,
       message: "Laboratory created successfully",
-      labId: lab._id
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to create laboratory" });
@@ -628,6 +907,55 @@ export const getAllLaboratories = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch laboratories" });
   }
 };
+
+
+
+export const bannedLabOwner = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const laboarotry = await Laboratory.findById(id);
+    if (!laboarotry) {
+      return res.status(404).json({ message: "Laboratory not found" });
+    }
+
+    laboarotry.isBanned = true;
+    laboarotry.status = "suspended";
+    await laboarotry.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Laboratory Onwer Suspended Successfully "
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Failed to cancel Lab Onwer" });
+  }
+};
+export const unBannedLabOwner = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const laboarotry = await Laboratory.findById(id);
+    if (!laboarotry) {
+      return res.status(404).json({ message: "Laboratory not found" });
+    }
+
+    laboarotry.isBanned = false;
+    laboarotry.status = "Active";
+    await laboarotry.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Laboratory Onwer Suspended Successfully "
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Failed to cancel Lab Onwer" });
+  }
+};
+
+
 
 export const updateLaboratory = async (req, res) => {
   try {
@@ -783,5 +1111,117 @@ export const markDoctorPayoutPaid = async (req, res) => {
 };
 
 // ************************** [payout] admin to doctor   controller end from  here ****************************** //
+
+// ************************** [create user ] role managment    controller start from  here ****************************** //
+
+export const createRole = async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  const existsUser = await Admin.findOne({ email })
+  if (existsUser) {
+    return res.status(401).json({ message: "Email already taken" })
+  }
+  await Admin.create({
+    name,
+    email,
+    password,
+    roles:role
+  });
+
+  res.status(201).json({ message: "role create Successfully" })
+
+}
+
+
+export const getAllRoles = async (req, res) => {
+  const roles = await Admin.find({ role: { $ne: "owner" } });
+
+  if (!roles) {
+    return res.status(402).json({ message: "roles not found" })
+  }
+
+  res.status(200).json({
+    success: true,
+    roles
+  })
+}
+
+
+export const updateRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, role } = req.body;
+
+    const admin = await Admin.findById(id);
+
+    if (!admin) {
+      return res.status(404).json({
+        message: "Admin not found",
+      });
+    }
+
+    // Prevent updating owner role
+    if (admin.roles === "owner") {
+      return res.status(403).json({
+        message: "Owner cannot be modified",
+      });
+    }
+
+    admin.name = name || admin.name;
+    admin.email = email || admin.email;
+    admin.roles = role || admin.roles;
+
+    await admin.save();
+
+    res.status(200).json({
+      message: "Admin updated successfully",
+      admin,
+    });
+  } catch (error) {
+    console.error("Update Admin Error:", error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+
+
+export const deleteAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const admin = await Admin.findById(id);
+
+    if (!admin) {
+      return res.status(404).json({
+        message: "Admin not found",
+      });
+    }
+
+    // Prevent deleting owner
+    if (admin?.roles === "owner") {
+      return res.status(403).json({
+        message: "Owner cannot be deleted",
+      });
+    }
+
+    await Admin.findByIdAndDelete(id);
+
+    res.status(200).json({
+      message: "Admin deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete Admin Error:", error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+
+// ************************** [create user ] role managment    controller end from  here ****************************** //
+
+
 
 

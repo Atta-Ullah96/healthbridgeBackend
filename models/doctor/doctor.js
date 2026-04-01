@@ -42,6 +42,10 @@ const doctorSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+   isVerified: {
+    type: Boolean,
+    default:false
+    },
 
     isActive: {
       type: Boolean,

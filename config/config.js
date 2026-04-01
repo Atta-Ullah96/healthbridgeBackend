@@ -16,3 +16,5 @@ export const AGORA_APP_ID = process.env.AGORA_APP_ID
 export const AGORA_APP_CERTIFICATE  = process.env.AGORA_APP_CERTIFICATE 
 export const HEALTHBIRDGE_DOMAIN = process.env.HEALTHBIRDGE_DOMAIN
 export const GITHUB_WEBHOOK_SECRET_KEY = process.env.GITHUB_WEBHOOK_SECRET_KEY
+export const TESTING_URL_1 = process.env.TESTING_URL_1
+export const TESTING_URL_2 = process.env.TESTING_URL_2

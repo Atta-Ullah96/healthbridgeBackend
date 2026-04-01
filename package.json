@@ -5,7 +5,7 @@
   "main": "app.js",
   "type": "module",
   "scripts": {
-    "dev": "node --watch app.js",
+    "dev": "node --watch server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -28,6 +28,7 @@
     "mongoose": "^8.19.1",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
+    "serverless-http": "^4.0.0",
     "stripe": "^20.0.0",
     "zod": "^4.1.13"
   }

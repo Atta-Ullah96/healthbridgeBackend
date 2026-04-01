@@ -1,4 +1,4 @@
-import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { AWS_S3_BUCKET_NAME } from "../config/config.js";
 
@@ -42,3 +42,13 @@ export const verifyStorageFile = async({key}) =>{
     const headResult = await s3Client.send(headCommand);
     return headResult;
 }
+
+
+export const deleteFromS3 = async ({key}) => {
+  const command = new DeleteObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    Key: key,
+  });
+
+  await s3Client.send(command);
+};

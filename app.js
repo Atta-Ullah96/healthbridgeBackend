@@ -1,4 +1,4 @@
-import { ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, PORT, SIGNED_COOKIE_SECRET_KEY } from './config/config.js';
+import {  SIGNED_COOKIE_SECRET_KEY, TESTING_URL_1, TESTING_URL_2 } from './config/config.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
@@ -16,8 +16,8 @@ import { spawn } from 'child_process';
 
 
 const allowedOrigins = [
-  HEALTHBIRDGE_DOMAIN,
-  ADMIN_HEALTHBRIDGE_DOMAIN,
+  TESTING_URL_1,
+  TESTING_URL_2,
 
 ];
 
@@ -93,10 +93,7 @@ app.post(
 
 app.use(cookieParser(SIGNED_COOKIE_SECRET_KEY))
 
-// **************************** database connection start ************* // 
-import connectDB from './config/db.js';
-connectDB()
-// **************************** database connection end ************* // 
+
 
 // **************************** slot function  start ************* //
 
@@ -140,26 +137,28 @@ import review from './routes/review/review.js'
 app.use("/api/v1/review", review)
 // **************************** review routes end ************* // 
 
-// **************************** laboratory routes start ************* // 
 
+// **************************** admin routes start ************* // 
+import admin from './routes/admin/admin.js'
+app.use("/api/v1/admin", admin)
+// **************************** admin routes end ************* // 
+
+// **************************** laboratory routes start ************* // 
 import Laboratory from './routes/laboratory/laboratory.js';
 app.use("/api/v1/laboratory", Laboratory)
 
 // **************************** laboratory routes end ************* //
 
-// **************************** admin routes start ************* // 
-import admin from './routes/admin/admin.js'
+
+
+
+
 import { zodErrorHandler } from './middleware/zodErrorMiddleware.js';
-
-
-
-app.use("/api/v1/admin", admin)
-// **************************** admin routes end ************* // 
 
 
 app.use(zodErrorHandler);
 app.use(errorHandler)
 
-app.listen(PORT, () => {
-  console.log("server is running on port number 4000")
-})
+
+
+export default app;

@@ -2,7 +2,7 @@ import { Admin } from "../models/admin/admin.js";
 import Session from "../models/session.js";
 
 export const adminAuth = async (req, res, next) => {
-  const sessionId = req.cookies.adminSessionId;
+  const sessionId = req.cookies.sessionId;
 
   if (!sessionId) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -14,7 +14,7 @@ export const adminAuth = async (req, res, next) => {
   }
 
 
-  const admin = await Admin.findById(session.adminId);
+  const admin = await Admin.findById(session.userId);
 
   if(!admin){
       return res.status(403).json({ message: "Forbidden" });

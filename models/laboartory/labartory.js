@@ -16,32 +16,30 @@ const laboratorySchema = new mongoose.Schema(
       lowercase: true
     },
 
-    phone: {
-      type: String,
-      required: true
-    },
+
 
     password: {
       type: String,
       required: true
     },
 
-    location: {
-      address: String,
-      city: String,
-      latitude: Number,
-      longitude: Number
-    },
+
 
     isActive: {
       type: Boolean,
       default: true
     },
 
-    isVerified: {
+    isBanned: {
       type: Boolean,
-      default: true
+      default: false
+    },
+    status:{
+      type:String,
+      enum: ["pending" , "Active" , "suspended"],
+      default:"pending"
     }
+
   },
   { timestamps: true }
 );
