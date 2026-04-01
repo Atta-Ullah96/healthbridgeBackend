@@ -15,6 +15,9 @@ import { spawn } from 'child_process';
 
 
 
+console.log(HEALTHBIRDGE_DOMAIN);
+console.log(ADMIN_HEALTHBRIDGE_DOMAIN);
+
 const allowedOrigins = [
   HEALTHBIRDGE_DOMAIN,
 
