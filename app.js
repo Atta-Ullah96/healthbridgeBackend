@@ -104,7 +104,7 @@ app.use(cookieParser(SIGNED_COOKIE_SECRET_KEY))
 // testing api 
 
 app.get("/", (req, res) => {
-  res.end("tesing api from backen")
+  res.end("tesing api from backend")
 })
 
 // **************************** doctor api's start ************* // 
