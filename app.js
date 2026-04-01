@@ -17,7 +17,6 @@ import { spawn } from 'child_process';
 
 const allowedOrigins = [
   HEALTHBIRDGE_DOMAIN,
-  ADMIN_HEALTHBRIDGE_DOMAIN,
 
 ];
 
@@ -104,7 +103,7 @@ app.use(cookieParser(SIGNED_COOKIE_SECRET_KEY))
 // testing api 
 
 app.get("/", (req, res) => {
-  res.end("tesing api from backend")
+  res.end("tesing api from backend !!!")
 })
 
 // **************************** doctor api's start ************* // 
