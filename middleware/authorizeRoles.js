@@ -3,7 +3,7 @@ export const authorizeRoles = (...allowedRoles) => {
 
     const adminRoles = req.admin.roles;
 
-    const hasAccess = adminRoles.some(role =>
+    const hasAccess = adminRoles.enum.some(role =>
       allowedRoles.includes(role)
     );
 
