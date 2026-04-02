@@ -5,9 +5,9 @@ const adminSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
   roles: {
-    type: [String],
+    type: String,
     enum: ["owner", "admin", "manager", "viewer"],
-    default: ["owner"]
+    default: "owner"
   }
 }, { timestamps: true });
 
