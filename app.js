@@ -15,6 +15,8 @@ import { spawn } from 'child_process';
 const isProduction = NODE_ENV === 'production';
 console.log("current env" ,NODE_ENV);
 
+console.log("both origin before array" ,PROD_ADMIN_HEALTHBRIDGE_DOMAIN, PROD_HEALTHBIRDGE_DOMAIN );
+
 
 const allowedOrigins = isProduction
 ? [PROD_HEALTHBIRDGE_DOMAIN, PROD_ADMIN_HEALTHBRIDGE_DOMAIN]
