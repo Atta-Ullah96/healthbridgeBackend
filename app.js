@@ -13,18 +13,13 @@ import { spawn } from 'child_process';
 // import { generateSlots } from './utils/slotGenerator.js';
 
 const isProduction = NODE_ENV === 'production';
-console.log("current env" ,NODE_ENV);
 
-console.log("isProduction" , isProduction);
-
-console.log("both origin before array" ,PROD_ADMIN_HEALTHBRIDGE_DOMAIN, PROD_HEALTHBIRDGE_DOMAIN );
 
 
 const allowedOrigins = isProduction
 ? [PROD_HEALTHBIRDGE_DOMAIN, PROD_ADMIN_HEALTHBRIDGE_DOMAIN]
 : [DEV_ORIGIN_1, DEV_ORIGIN_2];
 
-console.log("origins" ,allowedOrigins);
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true); // allow Postman, mobile apps
