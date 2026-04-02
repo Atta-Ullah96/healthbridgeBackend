@@ -8,7 +8,7 @@ export const adminAuth = async (req, res, next) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const session = await Session.findById({_id: sessionId});
+  const session = await Session.findById(sessionId);
   if (!session || session.expiresAt < new Date()) {
     return res.status(401).json({ message: "Session expired" });
   }

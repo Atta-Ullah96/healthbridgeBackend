@@ -1,4 +1,4 @@
-import { ADMIN_HEALTHBRIDGE_DOMAIN, HEALTHBIRDGE_DOMAIN, SIGNED_COOKIE_SECRET_KEY, } from './config/config.js';
+import { DEV_ORIGIN_1, DEV_ORIGIN_2, PROD_ADMIN_HEALTHBRIDGE_DOMAIN, PROD_HEALTHBIRDGE_DOMAIN, PROD_SIGNED_COOKIE_SECRET_KEY,} from './config/config.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
@@ -12,15 +12,11 @@ import { spawn } from 'child_process';
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
 
+const isProduction = process.env.NODE_ENV === 'production';
 
-
-
-
-
-const allowedOrigins = [
-  HEALTHBIRDGE_DOMAIN,
-  ADMIN_HEALTHBRIDGE_DOMAIN
-];
+const allowedOrigins = isProduction
+  ? [PROD_ADMIN_HEALTHBRIDGE_DOMAIN, PROD_HEALTHBIRDGE_DOMAIN]
+  : [DEV_ORIGIN_1, DEV_ORIGIN_2];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -93,7 +89,7 @@ app.post(
   }
 );
 
-app.use(cookieParser(SIGNED_COOKIE_SECRET_KEY))
+app.use(cookieParser(PROD_SIGNED_COOKIE_SECRET_KEY))
 
 
 

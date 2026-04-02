@@ -1,10 +1,10 @@
 import pkg from 'agora-access-token';
 const { RtcTokenBuilder, RtcRole } = pkg;
-import { AGORA_APP_CERTIFICATE, AGORA_APP_ID } from "../config/config.js";
+import {  PROD_AGORA_APP_CERTIFICATE, PROD_AGORA_APP_ID } from "../config/config.js";
 
 export const generateAgoraToken = (channelName, uid) => {
-  const appId = AGORA_APP_ID;
-  const appCertificate =AGORA_APP_CERTIFICATE;
+  const appId = PROD_AGORA_APP_ID;
+  const appCertificate =PROD_AGORA_APP_CERTIFICATE;
 
   const role = RtcRole.PUBLISHER;
 

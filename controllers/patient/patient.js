@@ -5,7 +5,7 @@ import Session from "../../models/session.js";
 import { Appointment } from "../../models/appointements/appointements.js";
 import ErrorHandler from "../../utils/errorHandler.js";
 import { MedicalRecord } from "../../models/doctor/medicalrecord.js";
-import { AGORA_APP_ID } from "../../config/config.js";
+import {  PROD_AGORA_APP_ID } from "../../config/config.js";
 import { canJoinCall } from "../../utils/canjoincall.js";
 import { generateAgoraToken } from "../../utils/agoraToken.js";
 
@@ -241,7 +241,7 @@ export const joinVideoCallByPatient = async (req, res) => {
   const token = generateAgoraToken(channelName, userId);
 
   res.json({
-    appId: AGORA_APP_ID,
+    appId: PROD_AGORA_APP_ID,
     token,
     channelName,
     uid: userId,

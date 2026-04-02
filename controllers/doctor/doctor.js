@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import Session from "../../models/session.js";
 import { Appointment } from "../../models/appointements/appointements.js";
 import mongoose from "mongoose";
-import { AGORA_APP_ID } from "../../config/config.js";
+import {  PROD_AGORA_APP_ID } from "../../config/config.js";
 import { BankDetails } from "../../models/doctor/bankdetails.js";
 import { doctorLogin, doctorRegisterSchema } from "../../utils/doctorValidator.js";
 import { DoctorAvailability } from "../../models/doctor/availavbility.js";
@@ -311,7 +311,7 @@ export const initiateUpload = asyncHandler(async (req, res, next) => {
       signedUrl,
 
     });
-    
+
   } catch (error) {
     next(error);
   }
@@ -1578,7 +1578,7 @@ export const joinVideoCallByDoctor = async(req ,res) =>{
     const token = generateAgoraToken(channelName, userId);
 
     res.json({
-      appId: AGORA_APP_ID,
+      appId: PROD_AGORA_APP_ID,
       token,
       channelName,
       uid: userId,

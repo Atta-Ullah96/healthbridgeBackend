@@ -1,8 +1,8 @@
 import Stripe from "stripe";
-import { STRIPE_CANCEL_URL,  STRIPE_SECRET_KEY, STRIPE_SUCCESS_URL } from "../config/config.js";
+import { PROD_STRIPE_CANCEL_URL, PROD_STRIPE_SECRET_KEY, PROD_STRIPE_SUCCESS_URL } from "../config/config.js";
 
 
-const stripe = new Stripe(STRIPE_SECRET_KEY);
+const stripe = new Stripe(PROD_STRIPE_SECRET_KEY);
 
 export const createCheckoutSession = async ({stripe ,  doctorName, amount, appointmentId }) => {
   const session = await stripe.checkout.sessions.create({
@@ -18,8 +18,8 @@ export const createCheckoutSession = async ({stripe ,  doctorName, amount, appoi
       },
     ],
     mode: "payment",
-    success_url:`${STRIPE_SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url:STRIPE_CANCEL_URL,
+    success_url:`${PROD_STRIPE_SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url:PROD_STRIPE_CANCEL_URL,
   });
 
   return { sessionId: session.id, checkoutUrl: session.url };

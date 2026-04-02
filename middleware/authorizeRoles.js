@@ -1,7 +1,11 @@
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
 
+
+    
+    
     const adminRoles = req.admin.roles;
+    
     if(!adminRoles){
       return res.status(404).json({success:false , message : "roles not found"})
     }
@@ -10,6 +14,7 @@ export const authorizeRoles = (...allowedRoles) => {
     const hasAccess = adminRoles.some(role =>
       allowedRoles.includes(role)
     );
+    
 
     if (!hasAccess) {
       return res.status(403).json({

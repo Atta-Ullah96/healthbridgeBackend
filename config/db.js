@@ -1,9 +1,13 @@
 import mongoose from "mongoose";
-import { DB_URL, DEVELOPING_DB_URL } from "./config.js"; 
+import { PROD_DB_URL  , DEV_DB_URL} from "./config.js";
+
+
+const isProduction = process.env.NODE_ENV === 'production';
+ const dbUrl = isProduction ? PROD_DB_URL : DEV_DB_URL;
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(DB_URL  );
+    const conn = await mongoose.connect(dbUrl);
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {

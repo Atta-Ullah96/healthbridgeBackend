@@ -4,7 +4,7 @@ import {Slot} from "../../models/slots/slots.js";
 import {Payout} from '../../models/admin/payout.js';
 import Doctor from "../../models/doctor/doctor.js";
 import { createCheckoutSession } from "../../services/stripeService.js";
-import { STRIPE_WEBHOOK_SECRET } from '../../config/config.js';
+import { PROD_STRIPE_WEBHOOK_SECRET  } from '../../config/config.js';
 import { ConsultationSetup } from '../../models/doctor/consultationSetup.js';
 
 
@@ -100,7 +100,7 @@ export const stripeWebhook = async (req, res) => {
 
     try {
         const sig = req.headers["stripe-signature"];
-        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+        event = stripe.webhooks.constructEvent(req.body, sig, PROD_STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error("Webhook signature verification failed:", err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);

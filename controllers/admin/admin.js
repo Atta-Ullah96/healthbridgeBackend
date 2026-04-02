@@ -19,14 +19,14 @@ import { Location } from "../../models/doctor/location.js";
 // ************************** Admin Auth api's start here ****************************** //
 
 export const adminRegister = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, roles } = req.body;
 
 
   await Admin.create({
     name,
     email,
     password,
-    role
+    roles
   });
 
   res.status(201).json({ message: "admin regsiterd successfully" })
@@ -48,7 +48,7 @@ export const adminLogin = async (req, res) => {
 
   const session = await Session.create({
     userId: admin._id,
-    role: "admin",
+    roles: "admin",
     expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
   });
 
