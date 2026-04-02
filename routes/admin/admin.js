@@ -21,7 +21,7 @@ router.get("/dashboard/overview",adminAuth,authorizeRoles("owner" , "admin" , "v
 //***************************  Admin doctor  routes start here   ********************* *//
 router.get("/doctors", adminAuth,authorizeRoles("owner" , "admin" , "viewer"),  getAllDoctors);
 router.get("/doctor/:id", adminAuth, authorizeRoles("owner" , "admin"), getDoctorById);
-router.patch("/doctors/:doctorId/verify",authorizeRoles("owner" , "admin"), adminAuth, verifyDoctor);
+router.patch("/doctors/:doctorId/verify", adminAuth,authorizeRoles("owner" , "admin"), verifyDoctor);
 router.patch("/doctors/:doctorId/ban", adminAuth,authorizeRoles("owner" , "admin"), banDoctor);
 router.patch("/doctors/:doctorId/unban", adminAuth,authorizeRoles("owner" , "admin"), unbanDoctor);
 router.delete("/doctors/:doctorId", adminAuth,authorizeRoles("owner" , "admin"), deleteDoctor);
