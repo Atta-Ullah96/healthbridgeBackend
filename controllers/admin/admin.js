@@ -484,7 +484,7 @@ export const verifyDoctor = async (req, res) => {
     }
 
     doctor.isVerified = true;
-
+    doctor.isProfileComplete = true;
     await doctor.save();
 
     res.status(200).json({
