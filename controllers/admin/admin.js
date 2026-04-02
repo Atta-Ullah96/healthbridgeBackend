@@ -36,22 +36,24 @@ export const adminRegister = async (req, res) => {
 export const adminLogin = async (req, res) => {
   const { email, password } = req.body;
 
+  
   const admin = await Admin.findOne({ email }).select("+password");
   if (!admin) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
-
+  
   const isMatch = await admin.comparePassword(password);
   if (!isMatch) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
-
+  
+  console.log("match" ,isMatch);
   const session = await Session.create({
     userId: admin._id,
-    roles: "admin",
+    role: "admin",
     expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
   });
-
+  
   res.cookie("sessionId", session._id.toString(), {
     httpOnly: true,
     sameSite: "strict"
