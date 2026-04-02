@@ -47,13 +47,17 @@ export const adminLogin = async (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
   
-  console.log("match" ,isMatch);
-  const session = await Session.create({
-    userId: admin._id,
-    role: "admin",
-    expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
-  });
+  let session = await Session.findOne({userId: admin._id})
+  if(!session){
+
+     session = await Session.create({
+      userId: admin._id,
+      role: "admin",
+      expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
+    });
+  }
   
+
   res.cookie("sessionId", session._id.toString(), {
     httpOnly: true,
     sameSite: "strict"
