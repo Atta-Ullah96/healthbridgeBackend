@@ -17,7 +17,7 @@ console.log("current env" ,NODE_ENV);
 
 
 const allowedOrigins = isProduction
-? [PROD_ADMIN_HEALTHBRIDGE_DOMAIN, PROD_HEALTHBIRDGE_DOMAIN]
+? [PROD_HEALTHBIRDGE_DOMAIN, PROD_ADMIN_HEALTHBRIDGE_DOMAIN]
 : [DEV_ORIGIN_1, DEV_ORIGIN_2];
 
 console.log("origins" ,allowedOrigins);
