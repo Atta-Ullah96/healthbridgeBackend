@@ -4,11 +4,11 @@ const adminSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   password: String,
-  roles: {
+  roles:[ {
     type: String,
     enum: ["owner", "admin", "manager", "viewer"],
     default: "owner"
-  }
+  }]
 }, { timestamps: true });
 
 

@@ -1,9 +1,12 @@
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
 
-    const adminRole = req.admin.roles;
+    const adminRoles = req.admin.roles;
 
-    const hasAccess = allowedRoles.includes(adminRole);
+    // Check if at least one of the admin's roles is included in the allowedRoles
+    const hasAccess = adminRoles.some(role =>
+      allowedRoles.includes(role)
+    );
 
     if (!hasAccess) {
       return res.status(403).json({
