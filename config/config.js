@@ -6,6 +6,10 @@ export const DEV_DB_URL =  process.env.DEV_DB_URL
 export const DEV_PORT  =process.env.DEV_PORT
 export const DEV_ORIGIN_1 = process.env.DEV_ORIGIN_1
 export const DEV_ORIGIN_2 = process.env.DEV_ORIGIN_2
+
+
+export const NODE_ENV = process.env.NODE_ENV
+
 // PRODUCTION ENV
 
 export const PROD_DB_URL = process.env.PROD_DB_URL

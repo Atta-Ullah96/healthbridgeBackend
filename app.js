@@ -1,4 +1,4 @@
-import { DEV_ORIGIN_1, DEV_ORIGIN_2, PROD_ADMIN_HEALTHBRIDGE_DOMAIN, PROD_HEALTHBIRDGE_DOMAIN, PROD_SIGNED_COOKIE_SECRET_KEY,} from './config/config.js';
+import { DEV_ORIGIN_1, DEV_ORIGIN_2, NODE_ENV, PROD_ADMIN_HEALTHBRIDGE_DOMAIN, PROD_HEALTHBIRDGE_DOMAIN, PROD_SIGNED_COOKIE_SECRET_KEY,} from './config/config.js';
 import express from 'express';
 const app = express();
 import errorHandler from './middleware/errorMiddleware.js';
@@ -12,7 +12,7 @@ import { spawn } from 'child_process';
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = NODE_ENV === 'production';
 
 const allowedOrigins = isProduction
   ? [PROD_ADMIN_HEALTHBRIDGE_DOMAIN, PROD_HEALTHBIRDGE_DOMAIN]
