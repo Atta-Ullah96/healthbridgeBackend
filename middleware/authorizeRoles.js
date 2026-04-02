@@ -1,11 +1,9 @@
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
 
-    const adminRoles = req.admin.roles;
+    const adminRole = req.admin.roles;
 
-    const hasAccess = adminRoles.enum.some(role =>
-      allowedRoles.includes(role)
-    );
+    const hasAccess = allowedRoles.includes(adminRole);
 
     if (!hasAccess) {
       return res.status(403).json({
