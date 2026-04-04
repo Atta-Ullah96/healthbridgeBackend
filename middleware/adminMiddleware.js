@@ -13,6 +13,7 @@ export const adminAuth = async (req, res, next) => {
     return res.status(401).json({ message: "Session expired" });
   }
 
+console.log(session);
 
   const admin = await Admin.findById(session.userId);
 

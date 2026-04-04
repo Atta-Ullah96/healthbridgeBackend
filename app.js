@@ -8,13 +8,20 @@ import { labStripeWebhook } from './controllers/laboratory/laboratory.js';
 import cors from 'cors'
 import crypto from 'crypto';
 import { spawn } from 'child_process';
+import promClient from 'prom-client'
 // import  cron from 'node-cron'
 // import Doctor from './models/doctor/doctor.js';
 // import { generateSlots } from './utils/slotGenerator.js';
 
+promClient.collectDefaultMetrics()
+
+app.get("/metrics" , async(req ,res)=>{
+  
+  const metrics = await promClient.register.metrics();
+  res.end(metrics)
+})
+
 const isProduction = NODE_ENV === 'production';
-
-
 
 const allowedOrigins = isProduction
 ? [PROD_HEALTHBIRDGE_DOMAIN, PROD_ADMIN_HEALTHBRIDGE_DOMAIN]
