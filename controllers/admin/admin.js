@@ -35,42 +35,54 @@ export const adminRegister = async (req, res) => {
 
 
 export const adminLogin = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  
-  const admin = await Admin.findOne({ email }).select("+password");
-  if (!admin) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
-  
-  const isMatch = await admin.comparePassword(password);
-  if (!isMatch) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
-  
-  let session = await Session.findOne({userId: admin._id})
-  if(!session){
+    const admin = await Admin.findOne({ email }).select("+password");
+    if (!admin) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-     session = await Session.create({
-      userId: admin._id,
-      role: "admin",
-      expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
+    const isMatch = await admin.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    let session = await Session.findOne({ userId: admin._id });
+
+    if (!session) {
+      session = await Session.create({
+        userId: admin._id,
+        role: "admin",
+        // Ensure this matches your schema's expiration logic
+        expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) 
+      });
+    }
+
+    // Use process.env.NODE_ENV to avoid ReferenceError
+
+    res.cookie("sessionId", session._id.toString(), {
+      httpOnly: true,
+      secure: NODE_ENV === "production", 
+      sameSite: "lax",
+      maxAge: 10 * 24 * 60 * 60 * 1000 // Best practice to set maxAge here too
     });
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin logged in successfully",
+      admin: {
+        id: admin._id,
+        email: admin.email,
+        role: "admin"
+      }
+    });
+
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
-  
-
-  res.cookie("sessionId", session._id.toString(), {
-    httpOnly: true,
-    secure : NODE_ENV === "production",
-    sameSite: "lax"
-  });
-
-  res.status(200).json({
-    message: "Admin logged in successfully",
-    admin
-  });
 };
-
 
 
 
