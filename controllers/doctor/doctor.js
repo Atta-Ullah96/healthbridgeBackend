@@ -187,57 +187,43 @@ export const me = async (req, res) => {
 
 export const loginWithGoogle = asyncHandler(async (req, res, next) => {
     const { token } = req.body;
-
     const { sub, email, name } = await verifyGoogleToken(token);
 
-    const existingUser = await Doctor.findOne({ email });
-    
+    let user = await Doctor.findOne({ email });
 
-    if (existingUser) {
-        let session = await Session.findOne({ userId: existingUser._id });
-
-        if (!session) {
-            session = await Session.create({ userId: existingUser._id , role:"doctor" });
-        } else {
-            session.updatedAt = Date.now(); // optional: refresh session timestamp
-            await session.save();
-        }
-        res.cookie("sessionId", session._id, {
-            httpOnly: true,
-            secure: NODE_ENV === "production",
+    // 1. Ensure user exists
+    if (!user) {
+        user = await Doctor.create({
+            name,
+            email,
+            role: "doctor",
+            googleId: sub
         });
-        await existingUser.save();
-        return res.status(200).json({success:true , message: "Login successful" });
-    } else {
-            // Create new user in transaction
-            const newUser = await Doctor.create(
-                {
-                    name:name,
-                    email:email,
-                    role:"doctor",
-                    googleId:sub
-                },
-                
-            );
-
-            // Create session for that user inside transaction
-            const session = await Session.create(
-                { userId: newUser._id , role:"doctor" },
-              
-            );
-
-            // Set cookie after commit
-            res.cookie("sessionId", session._id, {
-                httpOnly: true,
-                secure: true,
-            });
-
-            res.status(201).json({
-                message: "User created successfully",
-                userId: newUser._id,
-            });
-       
     }
+
+    // 2. Find or Create Session
+    let session = await Session.findOne({ userId: user._id });
+    if (!session) {
+        session = await Session.create({ userId: user._id, role: "doctor" });
+    } else {
+        session.updatedAt = Date.now();
+        await session.save();
+    }
+
+    // 3. Set the Cookie with correct attributes
+    res.cookie("sessionId", session._id.toString(), {
+        httpOnly: true,
+        // If testing on localhost, this must be false
+        secure: NODE_ENV === "production", 
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+    });
+
+    return res.status(user.isNew ? 201 : 200).json({
+        success: true,
+        message: "Login successful",
+        userId: user._id
+    });
 });
 
 // logout sessions
