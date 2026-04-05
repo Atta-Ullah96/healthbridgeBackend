@@ -341,7 +341,7 @@ export const getAllDoctors = async (req, res) => {
           id: doc._id,
           name: doc.name,
           email: doc.email,
-          phone: doc.basicInfo.phone,
+          phone: doc.basicInfo.phone || "N/A",
           specialization: doc.professionaldetails.specialization,
           experience: doc.professionaldetails.yearsOfExperience || 0,
           joinedDate: doc.createdAt,
