@@ -56,7 +56,7 @@ export const adminLogin = async (req, res) => {
         userId: admin._id,
         role: "admin",
         // Ensure this matches your schema's expiration logic
-        expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) 
+        expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
       });
     }
 
@@ -64,7 +64,7 @@ export const adminLogin = async (req, res) => {
 
     res.cookie("sessionId", session._id.toString(), {
       httpOnly: true,
-      secure: NODE_ENV === "production", 
+      secure: NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 10 * 24 * 60 * 60 * 1000 // Best practice to set maxAge here too
     });
@@ -106,10 +106,10 @@ export const adminDashboardOverview = async (req, res) => {
     BASIC COUNTS
     ====================== */
 
-    
+
     const totalAppointments = await Appointment.countDocuments();
     const totalPatients = await Patient.countDocuments();
-    const ActiveDoctors = await Doctor.find({isActive:true}).countDocuments();
+    const ActiveDoctors = await Doctor.find({ isActive: true }).countDocuments();
     const seventAppointments = await Appointment.find({}).populate("doctorId patientId").limit(7)
 
     /* ======================
@@ -225,7 +225,7 @@ export const adminDashboardOverview = async (req, res) => {
         upcomingAppointments,
         recentReviews,
       },
-      weeklyappointments:{
+      weeklyappointments: {
         seventAppointments
       }
     });
@@ -310,7 +310,7 @@ export const getAllDoctors = async (req, res) => {
       }
     ]);
 
-    console.log("doctors " , doctors)
+    console.log("doctors ", doctors)
     // 📊 Total Patients per doctor
     const doctorIds = doctors.map(d => d._id);
 
@@ -319,7 +319,7 @@ export const getAllDoctors = async (req, res) => {
       { $group: { _id: "$doctorId", total: { $sum: 1 } } }
     ]);
 
-    console.log("patient count" ,patientCounts )
+    console.log("patient count", patientCounts)
     const patientMap = {};
     patientCounts.forEach(p => {
       patientMap[p._id.toString()] = p.total;
@@ -336,12 +336,12 @@ export const getAllDoctors = async (req, res) => {
         const profileFile = files.find(file => file.purpose === "profile_photo");
 
         const profileImageUrl = profileFile ? await createGetFileFromAws({ key: profileFile.s3Key }) : null;
-
+        const phoneNumber = doc?.contactInfo?.phone || "N/A";
         return {
           id: doc._id,
           name: doc.name,
           email: doc.email,
-          phone: doc.basicInfo.phone || "N/A",
+          phone: phoneNumber,
           specialization: doc.professionaldetails.specialization,
           experience: doc.professionaldetails.yearsOfExperience || 0,
           joinedDate: doc.createdAt,
@@ -360,10 +360,10 @@ export const getAllDoctors = async (req, res) => {
       })
     );
 
-    console.log("formmatted doctors" , formattedDoctors)
+    console.log("formmatted doctors", formattedDoctors)
     const totalDoctors = await Doctor.countDocuments(filter);
-    console.log("total Doctors" , totalDoctors);
-    
+    console.log("total Doctors", totalDoctors);
+
     res.status(200).json({
       success: true,
       page,
@@ -1155,7 +1155,7 @@ export const createRole = async (req, res) => {
     name,
     email,
     password,
-    roles:role
+    roles: role
   });
 
   res.status(201).json({ message: "role create Successfully" })
