@@ -204,7 +204,7 @@ export const loginWithGoogle = asyncHandler(async (req, res, next) => {
         }
         res.cookie("sessionId", session._id, {
             httpOnly: true,
-            secure: true,
+            secure: NODE_ENV === "production",
         });
         await existingUser.save();
         return res.status(200).json({success:true , message: "Login successful" });
