@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import Session from "../../models/session.js";
 import { Appointment } from "../../models/appointements/appointements.js";
 import mongoose from "mongoose";
-import {  PROD_AGORA_APP_ID } from "../../config/config.js";
+import {  NODE_ENV, PROD_AGORA_APP_ID } from "../../config/config.js";
 import { BankDetails } from "../../models/doctor/bankdetails.js";
 import { doctorLogin, doctorRegisterSchema } from "../../utils/doctorValidator.js";
 import { DoctorAvailability } from "../../models/doctor/availavbility.js";
