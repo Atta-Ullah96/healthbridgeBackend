@@ -15,6 +15,7 @@ import { ProfileSummary } from "../../models/doctor/profileSummary.js";
 import { DoctorAvailability } from "../../models/doctor/availavbility.js";
 import { ConsultationSetup } from "../../models/doctor/consultationSetup.js";
 import { Location } from "../../models/doctor/location.js";
+import { NODE_ENV } from "../../config/config.js";
 
 // ************************** Admin Auth api's start here ****************************** //
 
@@ -60,7 +61,8 @@ export const adminLogin = async (req, res) => {
 
   res.cookie("sessionId", session._id.toString(), {
     httpOnly: true,
-    sameSite: "strict"
+    secure : NODE_ENV === "production",
+    sameSite: "lax"
   });
 
   res.status(200).json({
