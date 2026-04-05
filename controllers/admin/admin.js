@@ -16,6 +16,7 @@ import { DoctorAvailability } from "../../models/doctor/availavbility.js";
 import { ConsultationSetup } from "../../models/doctor/consultationSetup.js";
 import { Location } from "../../models/doctor/location.js";
 import { NODE_ENV } from "../../config/config.js";
+import { Payout } from "../../models/admin/payout.js";
 
 // ************************** Admin Auth api's start here ****************************** //
 
@@ -105,8 +106,11 @@ export const adminDashboardOverview = async (req, res) => {
     BASIC COUNTS
     ====================== */
 
+    
     const totalAppointments = await Appointment.countDocuments();
     const totalPatients = await Patient.countDocuments();
+    const ActiveDoctors = await Doctor.find({isActive:true}).countDocuments();
+    const seventAppointments = await Appointment.find({}).populate("doctorId patientId").limit(7)
 
     /* ======================
     TOTAL EARNINGS
@@ -117,8 +121,8 @@ export const adminDashboardOverview = async (req, res) => {
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
 
-    const labEarnings = await Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
+    const labEarnings = await Payout.aggregate([
+      { $match: { status: "paid" } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
 
@@ -210,6 +214,7 @@ export const adminDashboardOverview = async (req, res) => {
         totalAppointments,
         totalPatients,
         totalEarning,
+        ActiveDoctors,
         totalRating: Number(totalRating.toFixed(1)),
       },
       charts: {
@@ -220,6 +225,9 @@ export const adminDashboardOverview = async (req, res) => {
         upcomingAppointments,
         recentReviews,
       },
+      weeklyappointments:{
+        seventAppointments
+      }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
