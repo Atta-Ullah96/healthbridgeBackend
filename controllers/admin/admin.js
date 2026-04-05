@@ -338,24 +338,24 @@ export const getAllDoctors = async (req, res) => {
         const profileImageUrl = profileFile ? await createGetFileFromAws({ key: profileFile.s3Key }) : null;
         const phoneNumber = doc?.contactInfo?.phone || "N/A";
         return {
-          id: doc._id,
-          name: doc.name,
-          email: doc.email,
+          id: doc?._id,
+          name: doc?.name,
+          email: doc?.email,
           phone: phoneNumber,
-          specialization: doc.professionaldetails.specialization,
-          experience: doc.professionaldetails.yearsOfExperience || 0,
-          joinedDate: doc.createdAt,
-          lastActive: doc.lastLogin || doc.updatedAt,
+          specialization: doc?.professionaldetails?.specialization,
+          experience: doc?.professionaldetails?.yearsOfExperience || 0,
+          joinedDate: doc?.createdAt,
+          lastActive: doc?.lastLogin || doc.updatedAt,
           totalPatients: patientMap[doc._id.toString()] || 0,
-          status: doc.isBanned
+          status: doc?.isBanned
             ? "banned"
-            : doc.isVerified
+            : doc?.isVerified
               ? "verified"
               : "pending",
 
           profileImage: profileImageUrl,
-          isVerified: doc.isVerified,
-          isBanned: doc.isBanned
+          isVerified: doc?.isVerified,
+          isBanned: doc?.isBanned
         };
       })
     );
