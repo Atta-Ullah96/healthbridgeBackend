@@ -310,6 +310,7 @@ export const getAllDoctors = async (req, res) => {
       }
     ]);
 
+    console.log("doctors " , doctors)
     // 📊 Total Patients per doctor
     const doctorIds = doctors.map(d => d._id);
 
@@ -318,6 +319,7 @@ export const getAllDoctors = async (req, res) => {
       { $group: { _id: "$doctorId", total: { $sum: 1 } } }
     ]);
 
+    console.log("patient count" ,patientCounts )
     const patientMap = {};
     patientCounts.forEach(p => {
       patientMap[p._id.toString()] = p.total;
@@ -358,7 +360,10 @@ export const getAllDoctors = async (req, res) => {
       })
     );
 
+    console.log("formmatted doctors" , formattedDoctors)
     const totalDoctors = await Doctor.countDocuments(filter);
+    console.log("total Doctors" , totalDoctors);
+    
     res.status(200).json({
       success: true,
       page,
